@@ -1,0 +1,45 @@
+.dot:hover {
+    fill: yellow;
+    stroke-width: 2px;
+    stroke: red;
+  }
+.dot {
+    fill: navy;
+    stroke-width: 2px;
+    stroke: black;
+}
+
+#legendlinechart {
+    border: 2px solid;
+    border-color: black;
+    width: 150;
+    fill:beige;
+    
+}
+
+.legend-text {
+    font-size: 16px;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    text-anchor: middle;
+    fill: black;
+}
+
+.ticklabels {
+    font-size: 16px;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
+.axislabel{
+    font-size: 28px;
+    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
+  .txt {
+      font-family: sans-serif;
+      
+  }
+
+.selectize-input1 {
+    width: 100%
+}
+
