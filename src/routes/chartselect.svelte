@@ -70,7 +70,8 @@
                 maxItems: maxItems,
                 onChange: (value) => {
                         handleChange(value);
-                }
+                },
+                //plugins: ['item_color']
             })            
             let selectizeItem = selectizeItem1[0].selectize; // This stores the selectize object to a variable (with name 'selectize')
             

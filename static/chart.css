@@ -1,13 +1,20 @@
 .dot:hover {
-    fill: yellow;
-    stroke-width: 2px;
-    stroke: red;
+    stroke-width: 4px;
   }
 .dot {
-    fill: navy;
     stroke-width: 2px;
-    stroke: black;
 }
+
+.movingaverage-line {
+    fill: none;
+    stroke-width: 1.5;
+}
+
+.path-line {
+    fill: none;
+    stroke-width: 0.5;
+}
+
 
 #legendlinechart {
     border: 2px solid;

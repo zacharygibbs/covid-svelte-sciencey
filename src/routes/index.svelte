@@ -173,8 +173,7 @@
 <Styles />
 
 <body>
-    <h1 id="title"> covid-dash-sciencey</h1>
-    <!-- <div>API Key: {APIKEY}</div> -->
+    <h1 id="title"> covid-svelte-sciencey</h1>
     <div>Data Load Status: {loadStatus}</div>
     <div class='cntnr'>
         <Container class='float-start .chart-container'>

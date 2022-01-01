@@ -23,17 +23,12 @@
     export let minVal;
     export let maxVal;
 
-    let loadedData = [];
+    let loadedData = null;
     let mounted2 = false;
     onMount(() => {
         mounted2 = true;
     })
-    const width = 1000;
-    const height = 700;
-    const padding = 50;
-    const paddingLeft = 150;
-    const paddingBottom = 150;
-    const CIRLCESIZE = 1;
+
     let attrib;
     let dropdownVals = [];
     let dropdownValsState = [];
@@ -42,6 +37,8 @@
     let attribBuffer;
     let startDate;
     let endDate;
+    let movingaverageCheckbox = true;
+    let rawdataCheckbox = true;
     
 
 
@@ -136,7 +133,7 @@
             })
         }
         else{
-            mapValsUnordered = mapInData[1].filter((mapValData, index) => {
+            mapValsUnordered = mapInData[2].filter((mapValData, index) => {
                 return event.detail.value.includes(mapValData.fips)
             })
         }
@@ -153,7 +150,7 @@
             let isDataLoaded = loadedData.filter((value) => {
                 return value.fips == tmp[0].fips
             })
-            if(isDataLoaded.length==0){//if no data loaded yet
+            if(true){//isDataLoaded.length==0){//if no data loaded yet
                 let url
                 if(mapradioGroup=='county'){
                     url = getSingleTimeSeriesData(null, tmp[0].fips)
@@ -165,12 +162,17 @@
                 //Promise.all([d3.json(url), d3.json('https://api.covidactnow.org/v2/counties.json?apiKey='+apikey), d3.json('https://api.covidactnow.org/v2/states.json?apiKey='+apikey)])
             }
         }
-        Promise.all(urls)
+        if(urls.length==0){
+            draw_chart('reset')
+        }
+        else{
+            Promise.all(urls)
                 .then((data) => {
                     loadedData = [...data];
-                    console.log(loadedData)
                     draw_chart(data)
                 })
+        }
+
 
     }
     
@@ -241,10 +243,17 @@
         
     }
 
-
+    const widthpct = '100%';
+    const padding = 50;
+    const paddingLeft = 150;
+    const paddingBottom = 150;
+    const CIRLCESIZE = 0.5;
     const draw_chart = (data) => {
+        if(data=='reset'){
+            jq("#d3linechart").empty() // clear chart
+            return null
+        }
         if(!!data){
-            
             let dataProcessed = [];
             let absmax = -9999999999999;
             let absmin = 9999999999999;
@@ -267,16 +276,30 @@
             if(!startDate & datemin!='2399-01-01'){
                 startDate = datemin;
             }
+            else{
+                datemin = startDate 
+            }
             if(!endDate & datemax!='1900-01-01'){
                 endDate = datemax;
             }
-            console.log(absmin, absmax, datemin, datemax)
+            else{
+                datemax = endDate 
+            }
+            for(let i=0; i<dataProcessed.length;i++){
+                dataProcessed[i] = dataProcessed[i].filter((d) => {
+                    return d.date < datemax & d.date > datemin
+                })
+            }
+            let origScroll = window.pageYOffset;
+
             jq("#d3linechart").empty() // clear chart
+            let width = document.getElementById("d3linechart-col").offsetWidth
+            let height = width * 0.66
+
             const svg = d3.select("#d3linechart")
                             .append("svg")
-                            .attr("width", width)
+                            .attr("width", widthpct)
                             .attr("height", height)
-
             const xScale = d3.scaleTime()
                 .domain([new Date(datemin), new Date(datemax)])
                 .range([paddingLeft, width - padding]);
@@ -285,148 +308,180 @@
                 .domain([absmin, absmax])
                 .range([height - paddingBottom, padding]);
             
-            for(let i=0; i<dataProcessed.length; i++){
-                svg.selectAll("circle"+i)
-                    .data(dataProcessed[i])
-                    .enter()
-                    .append("circle")
-                    .attr("cx", (d, i) => xScale(new Date(d.date)))//i * 30)
-                    .attr("cy", (d, i) => yScale(d.value))//)//h - 3 * d)
-                    .attr('r', CIRLCESIZE)
-                    .attr("class", "dot")
-                    .attr('data-xvalue', (d, i) => d.date)
-                    .attr('data-yvalue', (d, i) => d.value)
+            for(let j=0; j<dataProcessed.length; j++){
+                if(rawdataCheckbox){
+                    svg.selectAll("circle"+j)
+                        .data(dataProcessed[j])
+                        .enter()
+                        .append("circle")
+                        .attr("cx", (d, i) => xScale(new Date(d.date)))//i * 30)
+                        .attr("cy", (d, i) => yScale(d.value))//)//h - 3 * d)
+                        .attr('r', CIRLCESIZE)
+                        .attr("class", "dot")
+                        .attr('stroke', (d,i) => colorFun(j, 0, dataProcessed.length - 1) )
+                        .attr('data-xvalue', (d, i) => d.date)
+                        .attr('data-yvalue', (d, i) => d.value)
+                }
 
-                //https://www.d3-graph-gallery.com/graph/line_basic.html
-                svg.append("path"+i)
-                .data(dataProcessed[i])
-                .attr("fill", "none")
-                .attr("stroke", "steelblue")
-                .attr("stroke-width", 1.5)
-                .attr("d", d3.line()
-                        .x((d) => { return xScale(new Date(d.date)) })
-                        .y((d) => { return yScale(d.movingaverage) })
-                )
+                    
+                
+                if(movingaverageCheckbox){
+                    //https://www.d3-graph-gallery.com/graph/line_basic.html
+                    svg.append("path")
+                    .datum(dataProcessed[j].filter((d) => {
+                        return !!d.movingaverage
+                    }))
+                    .attr('id', 'movingaverage'+j)
+                    .attr("class", "movingaverage-line")
+                    .attr('stroke', (d) => colorFun(j, 0, dataProcessed.length - 1) )
+                    .attr("d", d3.line()
+                            .x((d) => { return xScale(new Date(d.date)) })
+                            .y((d) => { return yScale(d.movingaverage) })
+                    )
+                }
+
+                if(rawdataCheckbox){
+                    svg.append("path")
+                    .datum(dataProcessed[j].filter((d) => {
+                        return !!d.value
+                    }))
+                    .attr('id', 'path'+j)
+                    .attr("class", "path-line")
+                    .attr('stroke', (d,i) => colorFun(j, 0, dataProcessed.length - 1) )
+                    .attr("d", d3.line()
+                            .x((d) => { return xScale(new Date(d.date)) })
+                            .y((d) => { return yScale(d.value) })
+                    )
+                }
             }
         
+            if(dataProcessed.length>0){
+                const xAxis = d3.axisBottom(xScale)
+                                .tickFormat(d3.timeFormat("%m/%d/%Y"));
 
-            const xAxis = d3.axisBottom(xScale)
-                            .tickFormat(d3.format('.0f'));
-
-            const yAxis = d3.axisLeft(yScale)
-                            .tickArguments([10,""])
-                            .tickFormat(d3.timeFormat("%M:%S"));
-            
-
-            svg.append("g")
-                .attr("transform", "translate(0," + (height - paddingBottom) + ")")
-                .attr('id', 'x-axis')
-                .call(xAxis)
-                .selectAll('.tick')
-                .attr('class','ticklabels');
-
-            svg.append("g")
-                .attr("transform", "translate(" + paddingLeft + ",0)")
-                .attr('id', 'y-axis')
-                .call(yAxis)
-                .selectAll('.tick')
-                .attr('class','ticklabels')
-
-            svg.append('text')
-                .attr('id', 'xlabel')
-                .attr("x", (width + paddingLeft)/2)
-                .attr("y", height - paddingBottom*0.65)
-                .style("text-anchor", "middle")
-                .attr('class', 'axislabel')
-                .text("Year");
-
-            svg.append('text')
-                .attr('id', 'ylabel')
-                .attr('transform', 'translate(' + (paddingLeft)/2+',' + (height - paddingBottom) / 2 + ')rotate(270)')
-                .style("text-anchor", "middle")
-                .attr('class', 'axislabel')
-                .text("Time (mm:ss)");
-            
-
-            svg.append('g')
-               .attr('id', 'legendlinechart')
-               .attr('transform', 'translate(600, 200)')
-               
-            let legend = d3.select('#legendlinechart')
-
-            legend.append('rect')
-                  .style('stroke', 'black')
-                  .style('stroke-width', '3px')
-                  .style('padding', '2px')
-                  .style('width', 200)
-                  .style('height', 100);
+                const yAxis = d3.axisLeft(yScale)
+                                .tickArguments([10,""])
+                                .tickFormat(d3.format('.2f'));
                 
-            legend.append('text')
-                  .attr('transform', 'translate(100, 25)')
-                  .attr('class','legend-text')
-                  .style('font-size','24px')
-                  .text('Legend')
-                  
-               
-            legend.append('circle')
-               .attr("cx", 30)//i * 30)
-               .attr("cy", 50)//)//h - 3 * d)
-               .attr('r', CIRLCESIZE)
-               .attr("class", "dot")
-               
-            legend.append('text')
-                  .attr('transform', 'translate(90, 53)')
-                  .attr('class','legend-text')
-                  .text('Data')
+
+                svg.append("g")
+                    .attr("transform", "translate(0," + (height - paddingBottom) + ")")
+                    .attr('id', 'x-axis')
+                    .call(xAxis)
+                    .selectAll('.tick')
+                    .attr('class','ticklabels');
+
+                svg.append("g")
+                    .attr("transform", "translate(" + paddingLeft + ",0)")
+                    .attr('id', 'y-axis')
+                    .call(yAxis)
+                    .selectAll('.tick')
+                    .attr('class','ticklabels')
+
+                svg.append('text')
+                    .attr('id', 'xlabel')
+                    .attr("x", (width + paddingLeft)/2)
+                    .attr("y", height - paddingBottom*0.65)
+                    .style("text-anchor", "middle")
+                    .attr('class', 'axislabel')
+                    .text("Year");
+
+                svg.append('text')
+                    .attr('id', 'ylabel')
+                    .attr('transform', 'translate(' + (paddingLeft)/2+',' + (height - paddingBottom) / 2 + ')rotate(270)')
+                    .style("text-anchor", "middle")
+                    .attr('class', 'axislabel')
+                    .text("Time (mm:ss)");
+                
+
+                svg.append('g')
+                .attr('id', 'legendlinechart')
+                .attr('transform', 'translate(600, 200)')
+                
+                let legend = d3.select('#legendlinechart')
+
+                legend.append('rect')
+                    .style('stroke', 'black')
+                    .style('stroke-width', '3px')
+                    .style('padding', '2px')
+                    .style('width', 200)
+                    .style('height', 100);
+                    
+                legend.append('text')
+                    .attr('transform', 'translate(100, 25)')
+                    .attr('class','legend-text')
+                    .style('font-size','24px')
+                    .text('Legend')
+                    
+                
+                legend.append('circle')
+                .attr("cx", 30)//i * 30)
+                .attr("cy", 50)//)//h - 3 * d)
+                .attr('r', CIRLCESIZE)
+                .attr("class", "dot")
+                
+                legend.append('text')
+                    .attr('transform', 'translate(90, 53)')
+                    .attr('class','legend-text')
+                    .text('Data')
 
 
 
-            // create a tooltip
-            let tooltip = d3.select('#d3linechart')
-                .append("div")
-                .attr('id', 'tooltip')
-                .style('opacity', 0)
-                .style('background-color', 'aquamarine')
-                .style('border', 'solid')
-                .style('border-width', '5px')
-                .style('padding', '2px')
-                .attr('datadate', null)
+                // create a tooltip
+                let tooltip = d3.select('#d3linechart')
+                    .append("div")
+                    .attr('id', 'tooltip')
+                    .style('opacity', 0)
+                    .style('background-color', 'aquamarine')
+                    .style('border', 'solid')
+                    .style('border-width', '5px')
+                    .style('padding', '2px')
+                    .attr('datadate', null)
 
-            const mouseover = (event, d) => {
-                tooltip.style('opacity', 0.7)
+                const mouseover = (event, d) => {
+                    tooltip.style('opacity', 0.7)
+                }
+
+                const mousemove = (event, d) => {
+                    tooltip.html('Name: ' + d.Name + '<br/>' 
+                            + 'Doping: ' + d.Doping + '<br/>'
+                            + 'Nationality: ' + d.Nationality + '<br/>'
+                            + 'URL: <a href="' + d.URL + '">Wikipedia</a>')
+                        .style('left', (d3.pointer(event)[0]) + 'px')
+                        .style('top', (d3.pointer(event)[1] + 150) + 'px')
+                        .style('position', 'absolute')
+                        .attr('data-year', d.Year)
+                }
+
+                const mouseleave = (event, d) => {
+                    tooltip.style('opacity', 0)
+                }
+
+                d3.selectAll("circle").on('mouseover', mouseover)
+                .on('mousemove', mousemove)
+                .on('mouseleave', mouseleave)
+
             }
 
-            const mousemove = (event, d) => {
-                tooltip.html('Name: ' + d.Name + '<br/>' 
-                        + 'Doping: ' + d.Doping + '<br/>'
-                        + 'Nationality: ' + d.Nationality + '<br/>'
-                        + 'URL: <a href="' + d.URL + '">Wikipedia</a>')
-                    .style('left', (d3.pointer(event)[0]) + 'px')
-                    .style('top', (d3.pointer(event)[1] + 150) + 'px')
-                    .style('position', 'absolute')
-                    .attr('data-year', d.Year)
-            }
-
-            const mouseleave = (event, d) => {
-                tooltip.style('opacity', 0)
-            }
-
-            d3.selectAll("circle").on('mouseover', mouseover)
-            .on('mousemove', mousemove)
-            .on('mouseleave', mouseleave)
-
+            window.scrollTo(0, origScroll);
         }
+
     }
 
-    const handleDateChange = (event) => {
-        console.log(event.target.id, startDate, endDate)
-        draw_chart()
-        //if(event.target.id=='startDate'){
-        //    startDate = event.target.value
-        //}
-        //else{
-        //    endDate = event.target.value
-        //}
+    startDate
+    $: {
+        startDate
+        endDate
+        if(!!loadedData){
+            draw_chart(loadedData)
+        }
+    }
+    $: {
+        rawdataCheckbox
+        movingaverageCheckbox
+        if(!!loadedData){
+            draw_chart(loadedData)
+        }
     }
 
 </script>
@@ -438,7 +493,7 @@
             <h2>Chart</h2>
         </Row>
         <Row>
-            <Col xs="4">
+            <Col xs="3">
                 {#if mounted & mounted2}
                     {#if mapradioGroup=='county'}
                         <Row>
@@ -458,7 +513,6 @@
                                   id="startDate"
                                   placeholder="date placeholder"
                                   bind:value={startDate}
-                                  on:change={handleDateChange}
                                 />
                                 <Label for="endDate">End Date</Label>
                                 <Input
@@ -467,8 +521,13 @@
                                   id="endDate"
                                   placeholder="date placeholder"
                                   bind:value={endDate}
-                                  on:change={handleDateChange}
                                 />
+                              </FormGroup>
+                        </Row>
+                        <Row>
+                            <FormGroup>
+                                <Input id="rawdatacheckbox" type="checkbox" label="raw data" bind:checked={rawdataCheckbox} />
+                                <Input id="movingaveragecheckbox" type="checkbox" label="7d avg" bind:checked={movingaverageCheckbox} />
                               </FormGroup>
                         </Row>
                     {:else}
@@ -479,7 +538,7 @@
 
 
             </Col>
-            <Col xs="auto">
+            <Col xs="9" id='d3linechart-col'>
                 <div id='d3linechart'></div>
             </Col>
         </Row>
