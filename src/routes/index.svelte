@@ -4,8 +4,13 @@
     2) fix map legend text & number of items and decimal points
     3) fix tab over of dropdown
     4) normalize number of cases, deaths; number of new cases/deaths
-    5) 7 day moving average?
-    6) 
+    5) 7 day moving average? - doesn't look great for FL? it's incorrect when their reporting is wonky; or for LA ICU Bed Capaicty
+    6) changing state does not change county drop down? when many counties already selected this in the case.
+    7) population error
+    8) on popup - show population?
+    9) double trigger draw event when checkbox?
+    10) Need to fix up data pull so that not as many API calls are needed during each switch?
+    11) need to pretty up the whole thing (layout/menu, about page?)
 
 
 

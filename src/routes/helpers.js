@@ -24,6 +24,8 @@ export const getMin = (mapValData1, attrib, mapradioGroup) => {
     }, 10000000000)
 }
 
+
+
 export const recursiveGetAttr = (inObj, attrib) => {
     let attribSplit = attrib.split('/');
             let getVal = inObj

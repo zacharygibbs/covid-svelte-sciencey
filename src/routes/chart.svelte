@@ -183,6 +183,7 @@
                 return dataItem.fips == stateSelectedFips
             })
             stateSelected = newState[0]['state'];
+            updateNodeRef = {value:updateNodeRef['value'] + 1, reset:true, keepVals:true};
         }
     }
 
@@ -245,6 +246,7 @@
 
     const widthpct = '100%';
     const padding = 50;
+    const paddingTop = 100;
     const paddingLeft = 150;
     const paddingBottom = 150;
     const CIRLCESIZE = 0.5;
@@ -261,6 +263,9 @@
             let datemin = '2399-01-01';
             for(let i=0; i<data.length; i++){
                 let objData = recursiveGetAttrTimeSeries(data[i], attrib, true)
+                if(!!!objData){
+                    continue
+                }
                 dataProcessed.push(objData['results'])
                 absmax = objData['max'] > absmax ? objData['max'] : absmax;
                 absmin = objData['min'] < absmin ? objData['min'] : absmin;
@@ -306,7 +311,7 @@
             
             const yScale = d3.scaleLinear()
                 .domain([absmin, absmax])
-                .range([height - paddingBottom, padding]);
+                .range([height - paddingBottom, paddingTop]);
             
             for(let j=0; j<dataProcessed.length; j++){
                 if(rawdataCheckbox){
@@ -354,13 +359,14 @@
                     )
                 }
             }
-        
             if(dataProcessed.length>0){
+                const tickWidth = 200
                 const xAxis = d3.axisBottom(xScale)
+                                .ticks(width / tickWidth)
                                 .tickFormat(d3.timeFormat("%m/%d/%Y"));
 
                 const yAxis = d3.axisLeft(yScale)
-                                .tickArguments([10,""])
+                                .tickArguments([5,""])
                                 .tickFormat(d3.format('.2f'));
                 
 
@@ -384,19 +390,19 @@
                     .attr("y", height - paddingBottom*0.65)
                     .style("text-anchor", "middle")
                     .attr('class', 'axislabel')
-                    .text("Year");
-
+                    .text("Date");
+                
                 svg.append('text')
                     .attr('id', 'ylabel')
                     .attr('transform', 'translate(' + (paddingLeft)/2+',' + (height - paddingBottom) / 2 + ')rotate(270)')
                     .style("text-anchor", "middle")
                     .attr('class', 'axislabel')
-                    .text("Time (mm:ss)");
+                    .text(attrib);
                 
 
                 svg.append('g')
-                .attr('id', 'legendlinechart')
-                .attr('transform', 'translate(600, 200)')
+                   .attr('id', 'legendlinechart')
+                   .attr('transform', 'translate(150, 0)')
                 
                 let legend = d3.select('#legendlinechart')
 
@@ -404,27 +410,33 @@
                     .style('stroke', 'black')
                     .style('stroke-width', '3px')
                     .style('padding', '2px')
-                    .style('width', 200)
-                    .style('height', 100);
+                    .style('width', width * 0.75)
+                    .style('height', 80);
                     
                 legend.append('text')
-                    .attr('transform', 'translate(100, 25)')
+                    .attr('transform', 'translate(15, 25)')
                     .attr('class','legend-text')
                     .style('font-size','24px')
                     .text('Legend')
-                    
-                
-                legend.append('circle')
-                .attr("cx", 30)//i * 30)
-                .attr("cy", 50)//)//h - 3 * d)
-                .attr('r', CIRLCESIZE)
-                .attr("class", "dot")
-                
-                legend.append('text')
-                    .attr('transform', 'translate(90, 53)')
-                    .attr('class','legend-text')
-                    .text('Data')
-
+                let prevx = 15;
+                const legtxtpadding = mapradioGroup=='county' ? 15: 20;
+                const pxperchar = 6.5;
+                for(let i=0;i<dataProcessed.length; i++){
+                    let legytxt = i < 5 ? 40 : 60
+                    let legtxt = mapradioGroup=='county' ? data[i]['county'] + ', ' + data[i]['state'] : data[i]['state']
+                    legend.append('circle')
+                        .attr("cx", prevx)//15 + (i - legxtxt) * (width * 0.8 - 50 - padding) / 5 )//i * 30)
+                        .attr("cy", legytxt)//)//h - 3 * d)
+                        .attr('r', 5)
+                        .attr('stroke', (d) => colorFun(i, 0, dataProcessed.length - 1) )
+                        .attr('fill', (d) => colorFun(i, 0, dataProcessed.length - 1) )
+                    legend.append('text')
+                          .attr('x', prevx + 10)//15 + 10 + (i - legxtxt) * (width * 0.8 - 50 - padding) / 5)
+                          .attr('y', legytxt + 5)
+                          .text(legtxt)
+                          .attr('class', 'legend-text')
+                    prevx = i != 4 ? prevx + legtxt.length*pxperchar + legtxtpadding : 15;
+                }
 
 
                 // create a tooltip
@@ -504,36 +516,39 @@
                             <span><strong>County: </strong></span>
                             <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:change={dataHandler} />
                         </Row>
-                        <Row>
-                            <FormGroup>
-                                <Label for="startDate">Start Date</Label>
-                                <Input
-                                  type="date"
-                                  name="startDate"
-                                  id="startDate"
-                                  placeholder="date placeholder"
-                                  bind:value={startDate}
-                                />
-                                <Label for="endDate">End Date</Label>
-                                <Input
-                                  type="date"
-                                  name="endDate"
-                                  id="endDate"
-                                  placeholder="date placeholder"
-                                  bind:value={endDate}
-                                />
-                              </FormGroup>
-                        </Row>
-                        <Row>
-                            <FormGroup>
-                                <Input id="rawdatacheckbox" type="checkbox" label="raw data" bind:checked={rawdataCheckbox} />
-                                <Input id="movingaveragecheckbox" type="checkbox" label="7d avg" bind:checked={movingaverageCheckbox} />
-                              </FormGroup>
-                        </Row>
+
                     {:else}
-                        <span><strong>State: </strong></span>
-                        <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:change={dataHandler} />
+                        <Row>
+                            <span><strong>State: </strong></span>
+                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:change={dataHandler} />
+                        </Row>
                     {/if}    
+                    <Row>
+                        <FormGroup>
+                            <Label for="startDate">Start Date</Label>
+                            <Input
+                              type="date"
+                              name="startDate"
+                              id="startDate"
+                              placeholder="date placeholder"
+                              bind:value={startDate}
+                            />
+                            <Label for="endDate">End Date</Label>
+                            <Input
+                              type="date"
+                              name="endDate"
+                              id="endDate"
+                              placeholder="date placeholder"
+                              bind:value={endDate}
+                            />
+                          </FormGroup>
+                    </Row>
+                    <Row>
+                        <FormGroup>
+                            <Input id="rawdatacheckbox" type="checkbox" label="raw data" bind:checked={rawdataCheckbox} />
+                            <Input id="movingaveragecheckbox" type="checkbox" label="7d avg" bind:checked={movingaverageCheckbox} />
+                          </FormGroup>
+                    </Row>
                 {/if}
 
 
