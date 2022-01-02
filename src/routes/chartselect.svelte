@@ -1,6 +1,6 @@
 <svelte:head>
     <link rel='stylesheet' href='selectize.css'/>
-    <link rel='stylesheet' href='chart.css'/>
+    
 </svelte:head>
 
 <script> 
@@ -99,3 +99,8 @@
 </script>
 <div id={divid} class='selectize-input1'>
 </div>
+
+<style>
+
+
+</style>

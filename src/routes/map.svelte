@@ -20,6 +20,7 @@
     export let mapradioGroup
     export let minVal
     export let maxVal
+    export let normalizeCheckbox
 
     let mounted2 = false;
     onMount(() => {
@@ -48,16 +49,17 @@
                 mapValDataState = mapInData[2];
                 mapValData = addIndextoObjects([...mapValDataState, ...mapValData]);
                 if(mapradioGroup=='state'){
-                    minVal = getMin(mapValDataState, attrib)
-                    maxVal = getMax(mapValDataState, attrib)
+                    minVal = getMin(mapValDataState, attrib, normalizeCheckbox)
+                    maxVal = getMax(mapValDataState, attrib, normalizeCheckbox)
                 }
                 else{
-                    minVal = getMin(mapValData, attrib)
-                    maxVal = getMax(mapValData, attrib)
+                    minVal = getMin(mapValData, attrib, normalizeCheckbox)
+                    maxVal = getMax(mapValData, attrib, normalizeCheckbox)
                 }
                 if(map_initialized==0){
                     initialize_map();
                 }
+                
                 draw_map(mapInData);
             }
         }
@@ -89,7 +91,7 @@
                 return d.id==d2.fips
             })
             if(theOne.length>0){
-                return recursiveGetAttr(theOne[0], attrib)
+                return recursiveGetAttr(theOne[0], attrib, normalizeCheckbox)
             }
             else{
                 return []
@@ -140,11 +142,6 @@
     
 
     const draw_map = () => {   
-        console.log(mapData);
-        console.log(mapValData);
-        console.log(mapradioGroup);
-
-        
         d3.selectAll("#d3chart > *").remove();
         const svg = d3.select("#d3chart")
                             .append("svg")
@@ -240,9 +237,6 @@
         const legAxis = d3.axisTop(colorLegendAxis)
                         //.tickValues(dataLegendAxis)
                         //.tickFormat(d3.format('.0f'));
-        
-        
-        console.log(legAxis.tickValues())
 
         legend.append("g")
             .attr("transform", "translate(50, 50)")
@@ -281,19 +275,19 @@
         const mousemove = (event, d) => {
             let curindex = filterfun(mapValData,'index')(d)
             let area_name = ''
-            console.log()
             if(mapValData[curindex]==undefined){
                 //console.log('state boundary')
             }
             else{
                 if(mapValData[curindex].hasOwnProperty('county')){
                     area_name = mapValData[curindex]['county']
-                    let curValue = recursiveGetAttr(mapValData[curindex], attrib);
+                    let curValue = recursiveGetAttr(mapValData[curindex], attrib, normalizeCheckbox);
                     let countyStr = mapradioGroup=='county' ? 'County: '  + area_name + '<br/>' : ''
                     tooltip.html(countyStr
                                 + 'State: ' + mapValData[curindex]['state'] + '<br/>'
                                 + attrib + ': ' + parseFloat(curValue).toFixed(2) + '<br/>'
-                                + 'lastUpdatedDate: ' + mapValData[curindex]['lastUpdatedDate'])
+                                + 'Population: ' + mapValData[curindex]['population']
+                    )
                             .style('left', (d3.pointer(event)[0]+ 30) + 'px')
                             .style('top', (d3.pointer(event)[1] + 30) + 'px')
                             .style('position', 'absolute')

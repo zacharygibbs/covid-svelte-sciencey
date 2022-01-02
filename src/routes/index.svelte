@@ -1,16 +1,18 @@
 <!--
 
-    1) time series trend
+    
     2) fix map legend text & number of items and decimal points
-    3) fix tab over of dropdown
-    4) normalize number of cases, deaths; number of new cases/deaths
-    5) 7 day moving average? - doesn't look great for FL? it's incorrect when their reporting is wonky; or for LA ICU Bed Capaicty
-    6) changing state does not change county drop down? when many counties already selected this in the case.
-    7) population error
+    
+    (done) 4) normalize number of cases, deaths; number of new cases/deaths
+    -- defer till later; 5) 7 day moving average? - doesn't look great for FL? it's incorrect when their reporting is wonky; or for LA ICU Bed Capaicty
+    (done) 6) changing state does not change county drop down? when many counties already selected this in the case.
     8) on popup - show population?
     9) double trigger draw event when checkbox?
     10) Need to fix up data pull so that not as many API calls are needed during each switch?
     11) need to pretty up the whole thing (layout/menu, about page?)
+    12 - need to not factor max/min for scale when value is outside of date range (perhaps do date filtering first?)
+    add on click map to add to chart (and tell user) and or on click expand state map?
+    add whole US metrics
 
 
 
@@ -58,6 +60,7 @@
     let mounted = false;
     let loadStatus = 'Not Loaded';
     let mapInData = [];
+    let normalizeCheckbox = true;
 
     let mapSelected_options = [
                                'riskLevels/overall',
@@ -100,7 +103,7 @@
                 mapData = mapInData[2];
             }
             let tmpData = mapData.filter((item, index) => {
-                return recursiveGetAttr(item, mapSelected)!=null;
+                return recursiveGetAttr(item, mapSelected, normalizeCheckbox)!=null;
             })
             .map((item, index) => {
                 let outObj = [];
@@ -110,7 +113,7 @@
                 else{
                     outObj = [item['state'], item['lastUpdatedDate']];
                 }
-                outObj.push(recursiveGetAttr(item, mapSelected));
+                outObj.push(recursiveGetAttr(item, mapSelected, normalizeCheckbox));
            //for(let i=0;i<mapSelected_options.length;i++){
             //outObj.push(recursiveGetAttr(item, mapSelected_options[i]));
            //}
@@ -183,7 +186,7 @@
     <div class='cntnr'>
         <Container class='float-start .chart-container'>
             <Row>
-                <Col>
+                <Col xs='2'>
                     <FormGroup>
                         <div class="radiofieldgroup">
                             <Input
@@ -205,28 +208,39 @@
                         </div>
                     </FormGroup>
                 </Col>
+                <Col xs = "4">
+                    <div id='checkbox-normalize'>
+                        <FormGroup>
+                            <Input id="normalizecheckbox" type="checkbox" label="Normalize per 1,000 for applicable items" bind:checked={normalizeCheckbox} />
+                          </FormGroup>
+                    </div>
+                </Col>
             </Row>
             <Row>
-                <div id="map-menus">
-                    <Row>
-                        <Col>
-                            <Dropdown>
-                                <DropdownToggle caret>{mapSelected}</DropdownToggle>
-                                <DropdownMenu>
-                                    {#each mapSelected_options as mst}
-                                        <DropdownItem on:click={() => {
-                                                                        mapSelected = mst;
-                                                                        Map.mapSelected
-                                                                        }}>
-                                            {mst}
-                                        </DropdownItem>
-                                    {/each}
-                                </DropdownMenu>
-                            </Dropdown>
-                        </Col>
-                    </Row>
-                </div>
+                <Col xs='1'>
+                    <div id="map-menus">
+                        <Row>
+                            <Col>
+                                <Dropdown>
+                                    <DropdownToggle caret>{mapSelected}</DropdownToggle>
+                                    <DropdownMenu>
+                                        {#each mapSelected_options as mst}
+                                            <DropdownItem on:click={() => {
+                                                                            mapSelected = mst;
+                                                                            Map.mapSelected
+                                                                            }}>
+                                                {mst}
+                                            </DropdownItem>
+                                        {/each}
+                                    </DropdownMenu>
+                                </Dropdown>
+                            </Col>
+                        </Row>
+                    </div>
+                </Col>
             </Row>
+                
+            
         </Container>
     </div>
 
@@ -236,7 +250,7 @@
                 <TabContent>
                     <TabPane tabId="map" tab="Map" active>
                         <h2>Map</h2>
-                        <Map {mapInData} {mapSelected} {mounted} {mapradioGroup} bind:minVal={minVal} bind:maxVal={maxVal}/>
+                        <Map {mapInData} {mapSelected} {mounted} {mapradioGroup} {normalizeCheckbox} bind:minVal={minVal} bind:maxVal={maxVal}/>
                     </TabPane>
                     <TabPane tabId="table" tab="Table">
                         <h2>Table</h2>
@@ -261,7 +275,7 @@
                         {/if}
                     </TabPane>
                     <TabPane tabId="chart" tab="Chart">
-                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {APIKEY} {minVal} {maxVal}/>
+                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {APIKEY} {minVal} {maxVal} {normalizeCheckbox}/>
                     </TabPane>
                 </TabContent>
             </Row>

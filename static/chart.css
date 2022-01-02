@@ -1,52 +1,51 @@
 .dot:hover {
     stroke-width: 4px;
   }
-.dot {
-    stroke-width: 2px;
-}
+    .dot {
+        stroke-width: 2px;
+    }
 
-.movingaverage-line {
-    fill: none;
-    stroke-width: 1.5;
-}
+    .movingaverage-line {
+        fill: none;
+        stroke-width: 1.5;
+    }
 
-.path-line {
-    fill: none;
-    stroke-width: 0.5;
-}
+    .path-line {
+        fill: none;
+        stroke-width: 0.5;
+    }
 
 
-#legendlinechart {
-    border: 2px solid;
-    border-color: black;
-    width: 150;
-    fill:aliceblue;
-    
-}
+    #legendlinechart {
+        border: 2px solid;
+        border-color: black;
+        width: 150;
+        fill:aliceblue;
+        
+    }
 
-.legend-text {
-    font-size: 12px;
-    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    text-anchor:start;
-    fill: black;
-}
+    .legend-text {
+        font-size: 12px;
+        font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        text-anchor:start;
+        fill: black;
+    }
 
-.ticklabels {
-    font-size: 16px;
-    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-}
+    .ticklabels {
+        font-size: 16px;
+        font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    }
 
-.axislabel{
-    font-size: 28px;
-    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-}
+    .axislabel{
+        font-size: 28px;
+        font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    }
 
-  .txt {
-      font-family: sans-serif;
-      
-  }
+    .txt {
+        font-family: sans-serif;
+        
+    }
 
-.selectize-input1 {
-    width: 100%
-}
-
+    .selectize-input1 {
+        width: 100%
+    }

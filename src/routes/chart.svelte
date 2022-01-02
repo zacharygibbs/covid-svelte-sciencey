@@ -10,7 +10,7 @@
     import { Styles } from 'sveltestrap';
     import { onMount } from "svelte";
     import { Col, Container, Row } from 'sveltestrap';
-    import {getMax, getMin, recursiveGetAttr} from './helpers.js'
+    import {getMax, getMin, recursiveGetAttr, recursiveGetAttrTimeSeries} from './helpers.js'
     import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
     import * as jq from 'jquery';
@@ -22,6 +22,7 @@
     export let APIKEY;
     export let minVal;
     export let maxVal;
+    export let normalizeCheckbox;
 
     let loadedData = null;
     let mounted2 = false;
@@ -50,7 +51,7 @@
                 updateNodeRef = {value:updateNodeRef['value'] + 1, reset:resetVal, keepVals:true};
                 attribBuffer = attrib;
                 dropdownVals = mapInData[1].map((dataItem) => {
-                    let curVal = recursiveGetAttr(dataItem, attrib);
+                    let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
                     let curValString = curVal==null ? '' : ' - ' + curVal.toFixed(2)
                     let outObj = {
                                     fips: dataItem.fips,
@@ -66,7 +67,7 @@
                                           
                 dropdownValsState = mapInData[2].map((dataItem) => {
                     
-                    let curVal = recursiveGetAttr(dataItem, attrib);
+                    let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
                     let curValString = curVal==null ? '' : ' - ' + curVal.toFixed(2)
                     let outObj = {
                                     fips: dataItem.fips,
@@ -187,62 +188,7 @@
         }
     }
 
-    const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false) => {
-        
-        let attribSplit = attrib.split('/');
-        let getVal = inObj;
-        if(getVal[attribSplit[0]+'Timeseries']!=null){
-                getVal = getVal[attribSplit[0] + 'Timeseries']
-            }
-        else{
-            return null
-        }
-        let getVal1;
-        let results = [];
-        let mvavg;
-        let mvavgValue;
-        let resmax = -90000000000000
-        let resmin = 90000000000000
-        const MOVINGAVGPOINTS = 7;
-        for(let i=0; i<getVal.length; i++){
-            getVal1 = getVal[i];
-            let foundDate = getVal1['date']
-            for(let j=1; j<attribSplit.length; j++){
-                getVal1 = getVal1[attribSplit[j]]
-            }
-            //while i am here, might as well approximate a moving average
-            if(i==0){
-                mvavg = getVal1;
-            }
-            else{
-                mvavg = mvavg * (1-1/MOVINGAVGPOINTS) + 1/MOVINGAVGPOINTS * getVal1
-            }
-            if(i<MOVINGAVGPOINTS){
-                mvavgValue = null;
-            }
-            else{
-                mvavgValue = mvavg;
-            }
-            results.push({
-                date: foundDate,
-                value: getVal1,
-                movingaverage: mvavgValue
-            })
-            resmax = getVal1 > resmax ? getVal1 : resmax;
-            resmin = getVal1 < resmin ? getVal1 : resmin;
-        }
-        if(returnmaxmin){
-            return{
-                results: results,
-                max: resmax,
-                min: resmin
-            }
-        }
-        else{
-            return results
-        }
-        
-    }
+
 
     const widthpct = '100%';
     const padding = 50;
@@ -262,7 +208,7 @@
             let datemax = '1900-01-01';
             let datemin = '2399-01-01';
             for(let i=0; i<data.length; i++){
-                let objData = recursiveGetAttrTimeSeries(data[i], attrib, true)
+                let objData = recursiveGetAttrTimeSeries(data[i], attrib, true, normalizeCheckbox)
                 if(!!!objData){
                     continue
                 }
@@ -419,9 +365,9 @@
                     .style('font-size','24px')
                     .text('Legend')
                 let prevx = 15;
-                const legtxtpadding = mapradioGroup=='county' ? 15: 20;
+                const legtxtpadding = mapradioGroup=='county' ? 15: 40;
                 const pxperchar = 6.5;
-                for(let i=0;i<dataProcessed.length; i++){
+                for(let i=0; i<dataProcessed.length; i++){
                     let legytxt = i < 5 ? 40 : 60
                     let legtxt = mapradioGroup=='county' ? data[i]['county'] + ', ' + data[i]['state'] : data[i]['state']
                     legend.append('circle')
@@ -568,5 +514,7 @@
         background-color: #fe3e4a;
         
     }
+
+
 
 </style>
