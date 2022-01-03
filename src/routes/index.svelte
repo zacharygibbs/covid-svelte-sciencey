@@ -6,13 +6,19 @@
     (done) 4) normalize number of cases, deaths; number of new cases/deaths
     -- defer till later; 5) 7 day moving average? - doesn't look great for FL? it's incorrect when their reporting is wonky; or for LA ICU Bed Capaicty
     (done) 6) changing state does not change county drop down? when many counties already selected this in the case.
-    8) on popup - show population?
-    9) double trigger draw event when checkbox?
+    (done) 8) on popup - show population?
+    --defer 9) double trigger draw event when checkbox?
     10) Need to fix up data pull so that not as many API calls are needed during each switch?
     11) need to pretty up the whole thing (layout/menu, about page?)
     12 - need to not factor max/min for scale when value is outside of date range (perhaps do date filtering first?)
+    (done) 13 - new cases - showing zero in dropdown for OK. same with map for many states; not ideal! - new deaths would require more work.
+    14- pretty up 
+    15) Security around api key?
+    
     add on click map to add to chart (and tell user) and or on click expand state map?
     add whole US metrics
+    
+
 
 
 
@@ -77,6 +83,7 @@
                                'actuals/cases', 
                                'actuals/deaths', 
                                'actuals/newCases', 
+                               'actuals/newCases_7d', 
                                'actuals/newDeaths',
                                'actuals/hospitalBeds/capacity',
                                'actuals/hospitalBeds/currentUsageCovid',
@@ -211,7 +218,7 @@
                 <Col xs = "4">
                     <div id='checkbox-normalize'>
                         <FormGroup>
-                            <Input id="normalizecheckbox" type="checkbox" label="Normalize per 1,000 for applicable items" bind:checked={normalizeCheckbox} />
+                            <Input id="normalizecheckbox" type="checkbox" label="Normalize per 100,000 for applicable items" bind:checked={normalizeCheckbox} />
                           </FormGroup>
                     </div>
                 </Col>

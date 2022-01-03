@@ -13,6 +13,7 @@
     import {getMax, getMin, recursiveGetAttr, recursiveGetAttrTimeSeries} from './helpers.js'
     import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
+    
     import * as jq from 'jquery';
 
     export let mounted;
@@ -195,7 +196,7 @@
     const paddingTop = 100;
     const paddingLeft = 150;
     const paddingBottom = 150;
-    const CIRLCESIZE = 0.5;
+    const CIRLCESIZE = 1;
     const draw_chart = (data) => {
         if(data=='reset'){
             jq("#d3linechart").empty() // clear chart
@@ -237,10 +238,19 @@
                 datemax = endDate 
             }
             for(let i=0; i<dataProcessed.length;i++){
+
                 dataProcessed[i] = dataProcessed[i].filter((d) => {
                     return d.date < datemax & d.date > datemin
                 })
             }
+
+            for(let j=0; j<dataProcessed.length; j++){
+                let colorVal = colorFun(j, 0, dataProcessed.length - 1);
+                for(let i=0; i<dataProcessed[j].length; i++){
+                    dataProcessed[j][i]['color'] = colorVal;
+                }
+            }
+            console.log(dataProcessed)
             let origScroll = window.pageYOffset;
 
             jq("#d3linechart").empty() // clear chart
@@ -269,7 +279,7 @@
                         .attr("cy", (d, i) => yScale(d.value))//)//h - 3 * d)
                         .attr('r', CIRLCESIZE)
                         .attr("class", "dot")
-                        .attr('stroke', (d,i) => colorFun(j, 0, dataProcessed.length - 1) )
+                        .attr('stroke', (d,i) => d.color)//colorFun(j, 0, dataProcessed.length - 1) )
                         .attr('data-xvalue', (d, i) => d.date)
                         .attr('data-yvalue', (d, i) => d.value)
                 }
@@ -390,34 +400,64 @@
                     .append("div")
                     .attr('id', 'tooltip')
                     .style('opacity', 0)
-                    .style('background-color', 'aquamarine')
+                    .style('background-color', 'aquarmarine')
                     .style('border', 'solid')
                     .style('border-width', '5px')
                     .style('padding', '2px')
-                    .attr('datadate', null)
 
                 const mouseover = (event, d) => {
-                    tooltip.style('opacity', 0.7)
+                    tooltip.style('opacity', 1)
                 }
 
                 const mousemove = (event, d) => {
-                    tooltip.html('Name: ' + d.Name + '<br/>' 
-                            + 'Doping: ' + d.Doping + '<br/>'
-                            + 'Nationality: ' + d.Nationality + '<br/>'
-                            + 'URL: <a href="' + d.URL + '">Wikipedia</a>')
+                    console.log(event)
+                    let moving_avg_text = '';
+                    if(event.target.tagName=='path'){
+                        //https://medium.com/@louisemoxy/create-an-accurate-tooltip-for-a-d3-area-chart-bf59783f8a2d
+                        const currentXPosition = event.layerX//d3.mouse(this)[0];
+                        const xValue = xScale.invert(currentXPosition);
+                        const bisectDate = d3.bisector(function(dee) { return new Date(dee.date); }).left;
+                        // Get the index of the xValue relative to the dataSet
+                        const dataIndex = bisectDate(d, xValue, 1);
+                        const leftData = d[dataIndex - 1];
+                        const rightData = d[dataIndex];
+                        let valueattr = 'value'
+                        d['value'] = leftData[valueattr];
+                        if(event.target.id.match(/^movingaverage/)){
+                            valueattr = 'movingaverage'
+                            moving_avg_text = '(7d avg)'
+                            d['value'] = leftData[valueattr] + (xValue - new Date(leftData.date)) / (leftData[valueattr] - rightData[valueattr]) / (new Date(leftData.date) - new Date(rightData.date))
+                        }          
+                        d = d[0] //but need to somehow get nearest value?
+                        d['value'] = leftData[valueattr];
+                    }
+                    let area_name = d['county'];
+                    let countyStr = mapradioGroup=='county' ? '<strong><span style="color: ' + d.color + '">' + 'County:</span></strong>'  + area_name + '<br/>' : '';
+                    tooltip.html(countyStr
+                                + '<strong><span style="color: ' + d.color + '">' + 'State:</span></strong>' + d['state'] + '<br/>'
+                                + attrib + ' ' + moving_avg_text + ': ' + parseFloat(d['value']).toFixed(2) + '<br/>'
+                                + 'Population: ' + d['population']
+                                )
                         .style('left', (d3.pointer(event)[0]) + 'px')
                         .style('top', (d3.pointer(event)[1] + 150) + 'px')
                         .style('position', 'absolute')
-                        .attr('data-year', d.Year)
                 }
 
                 const mouseleave = (event, d) => {
                     tooltip.style('opacity', 0)
                 }
 
-                d3.selectAll("circle").on('mouseover', mouseover)
-                .on('mousemove', mousemove)
-                .on('mouseleave', mouseleave)
+                d3.select('#d3linechart')
+                  .selectAll("circle")
+                  .on('mouseover', mouseover)
+                  .on('mousemove', mousemove)
+                  .on('mouseleave', mouseleave)
+                
+                d3.select('#d3linechart')
+                  .selectAll("path")
+                  .on('mouseover', mouseover)
+                  .on('mousemove', mousemove)
+                  .on('mouseleave', mouseleave)
 
             }
 
@@ -437,6 +477,7 @@
     $: {
         rawdataCheckbox
         movingaverageCheckbox
+        normalizeCheckbox
         if(!!loadedData){
             draw_chart(loadedData)
         }

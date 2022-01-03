@@ -1,8 +1,9 @@
-const perPopNormFactor=1000;
+const perPopNormFactor=100000;
 const normalizeList = [
     'actuals/cases', 
     'actuals/deaths', 
     'actuals/newCases', 
+    'actuals/newCases_7d', 
     'actuals/newDeaths',
     'actuals/hospitalBeds/capacity',
     'actuals/hospitalBeds/currentUsageCovid',
@@ -40,13 +41,22 @@ export const getMin = (mapValData1, attrib, normalize=false) => {
 
 
 export const recursiveGetAttr = (inObj, attrib, normalize=false) => {
+    let altcalc = false;
+    if(attrib == 'actuals/newCases_7d'){
+        altcalc = true;
+        attrib = 'metrics/caseDensity';
+    }
+    
     let attribSplit = attrib.split('/');
     let getVal = inObj
     for(let i=0; i<attribSplit.length; i++){
         getVal = getVal[attribSplit[i]]
     }
+    if(altcalc){
+        getVal = getVal * inObj.population / 100000;
+    }
     if(normalize){
-        if(normalizeList.includes(attrib)){
+        if(normalizeList.includes(attrib) | altcalc){
             return getVal / inObj.population * perPopNormFactor
         }
     }
@@ -55,7 +65,11 @@ export const recursiveGetAttr = (inObj, attrib, normalize=false) => {
 }
 
 export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, normalize=false) => {
-        
+    let altcalc = false;
+    if(attrib == 'actuals/newCases_7d'){
+        altcalc = true;
+        attrib = 'metrics/caseDensity';
+    }
     let attribSplit = attrib.split('/');
     let getVal = inObj;
     if(getVal[attribSplit[0]+'Timeseries']!=null){
@@ -72,6 +86,7 @@ export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, no
     let resmin = 90000000000000
     const MOVINGAVGPOINTS = 7;
     let lastDate;
+    
     for(let i=0; i<getVal.length; i++){
         getVal1 = getVal[i];
         let foundDate = getVal1['date']
@@ -79,8 +94,12 @@ export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, no
             getVal1 = getVal1[attribSplit[j]]
         }
 
+        if(altcalc){
+            getVal1 = getVal1 * inObj.population / 100000;
+        }
+
         if(normalize){
-            if(normalizeList.includes(attrib)){
+            if(normalizeList.includes(attrib) | altcalc){
                 getVal1 = getVal1 / inObj.population * perPopNormFactor
             }
         }
@@ -104,8 +123,12 @@ export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, no
         }
 
 
-
         results.push({
+            fips: inObj['fips'],
+            county: inObj['county'],
+            state: inObj['state'],
+            url: inObj['url'],
+            population: inObj['population'],
             date: foundDate,
             value: getVal1,
             movingaverage: mvavgValue
