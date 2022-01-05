@@ -1,11 +1,15 @@
 <svelte:head>
-    <link rel='stylesheet' href='selectize.css'/>
     
 </svelte:head>
 
+
+
 <script> 
-    import * as selectize from 'selectize';
-    import * as jq from 'jquery';
+    //import selectize from 'selectize';
+    //import jque from 'jquery';
+    import MultiSelect from 'svelte-multiselect'
+    
+    
     import { createEventDispatcher, onMount } from 'svelte';
 
     export let dropdownVals
@@ -15,28 +19,36 @@
     export let divid;
     export let selectid;
     export let stateSelected;
-    
+    export let selectedValues;
+
+    let selectedLabels;
+    let selectedValuesCur; //currently selected on dropdown; this may be different than what is passed from parent selectedValues
+    let selected;
+
+    $:{
+        
+    }
 
     let resetBuffer = updateNodeRef['reset'];
     let keepVals = false;
     let selfValue;
     let valueSet=false;
-
+    let dropdownOptions = [{value: 'testvalue', label:'testlabel'}];
     let mounted3 = false;
+    
 
     const dispatch = createEventDispatcher();
 
-    const handleChange = (value) => {
-        selfValue = value;
-        dispatch('change', {
-            value: value,
+    $: {
+        dispatch('chonge', {
             divid: divid,
-            selectid: selectid
+            selectid: selectid,
+            selectedValues: selectedValues
         })
     }
 
-
     $: {
+        console.log(stateSelected)
         stateSelected
         updateNodeRef
         dropdownVals
@@ -52,44 +64,48 @@
 
     const draw = () => {
         if(mounted3){
-            let chdiv = jq('#'+divid)
-            chdiv.empty()//children().remove()//chdiv.removeChild(chdiv.childNodes[0]);  
-            jq('<select id="' + selectid + '"></select>').appendTo('#'+divid)
+            let newDropdownOptions = [];
+            let selfValue = [...selectedValues];
             for(let i=0;i<dropdownVals.length;i++){
+                
                 if(stateSelected=='' | stateSelected==null | stateSelected=='ALL'){
-                    jq('#' + selectid).append(`<option value="${dropdownVals[i].fips}">${dropdownVals[i].text}</option>`);
+                    newDropdownOptions.push({
+                                            value:dropdownVals[i].fips,
+                                            label: dropdownVals[i].text,
+                                            preselected: dropdownVals[i].text=='ALL'
+                    });
+                    
                 }
                 else{
-                    if(dropdownVals[i]['state']==stateSelected){
-                        jq('#' + selectid).append(`<option value="${dropdownVals[i].fips}">${dropdownVals[i].text}</option>`);
+                    if(stateSelected == dropdownVals[i].state){
+                        newDropdownOptions.push({
+                                                value:dropdownVals[i].fips,
+                                                label: dropdownVals[i].text,
+                        });
                     }
                 }
+                
             }
-            let selectizeItem1 = jq('#' + selectid).selectize({
-                items: [],    
-                maxItems: maxItems,
-                onChange: (value) => {
-                        handleChange(value);
-                },
-                //plugins: ['item_color']
-            })            
-            let selectizeItem = selectizeItem1[0].selectize; // This stores the selectize object to a variable (with name 'selectize')
-            
+
             if(!valueSet & !keepVals){
-                selectizeItem.setValue(setValue, false);
+                selectedValues = [];//setValue;
                 valueSet = true;
+                console.log(selectedValues, selectid);
             }
             else if(keepVals){
-                selectizeItem.setValue(selfValue, false);
+                selectedValues = selfValue;
                 keepVals = false;
+
             }
             
-
+            dropdownOptions = [...newDropdownOptions];
+            
             
             
         }
     }
     
+
     onMount(() => {
         mounted3 = true;
         draw();
@@ -98,9 +114,15 @@
 
 </script>
 <div id={divid} class='selectize-input1'>
+        <MultiSelect bind:selected={selected} {selectedValuesCur} {selectedLabels} options={dropdownOptions} maxSelect={maxItems} id={selectid} class='multi-select'/>
 </div>
 
 <style>
+    .multi-select {
+
+
+
+    }
 
 
 </style>

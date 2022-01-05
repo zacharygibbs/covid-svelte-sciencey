@@ -64,7 +64,7 @@ export const recursiveGetAttr = (inObj, attrib, normalize=false) => {
             
 }
 
-export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, normalize=false) => {
+export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, normalize=false, minDate='1900-01-01', maxDate='2099-01-01') => {
     let altcalc = false;
     if(attrib == 'actuals/newCases_7d'){
         altcalc = true;
@@ -133,8 +133,18 @@ export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, no
             value: getVal1,
             movingaverage: mvavgValue
         })
-        resmax = getVal1 > resmax ? getVal1 : resmax;
-        resmin = getVal1 < resmin ? getVal1 : resmin;
+        resmax = (getVal1 > resmax) & 
+                 (
+                    foundDate > minDate & 
+                    foundDate < maxDate
+                 ) ? getVal1 : resmax;
+                
+        resmin = (getVal1 < resmin) &
+                 (
+                    foundDate > minDate & 
+                    foundDate < maxDate
+                 ) ? getVal1 : resmin;
+        
         lastDate = foundDate;
     }
     if(returnmaxmin){
@@ -148,4 +158,23 @@ export const recursiveGetAttrTimeSeries = (inObj, attrib, returnmaxmin=false, no
         return results
     }
     
+}
+
+export const minMaxResolver = (startDate, endDate, datemin, datemax, firstTime=false) => {
+    //console.log('minMaxResolver', startDate, endDate, datemin, datemax, firstTime)
+    let outstartDate = null;
+    let outendDate = null;
+    if(!startDate & (datemin!='2399-01-01' | firstTime ) ){
+        outstartDate = datemin;
+    }
+    else{
+        datemin = startDate;
+    }
+    if(!endDate & ( datemax!='1900-01-01' | firstTime )){
+        outendDate = datemax;
+    }
+    else{
+        datemax = endDate;
+    }
+    return [datemin, datemax, outstartDate, outendDate]
 }

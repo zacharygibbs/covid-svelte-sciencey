@@ -4,17 +4,16 @@
 
 <script>
     import ChSe from './chartselect.svelte'
-    
     import * as d3 from 'd3';//'../../node_modules/.pnpm/d3@7.1.1/node_modules/d3';
     
     import { Styles } from 'sveltestrap';
     import { onMount } from "svelte";
     import { Col, Container, Row } from 'sveltestrap';
-    import {getMax, getMin, recursiveGetAttr, recursiveGetAttrTimeSeries} from './helpers.js'
+    import {getMax, getMin, recursiveGetAttr, recursiveGetAttrTimeSeries, minMaxResolver} from './helpers.js'
     import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
     
-    import * as jq from 'jquery';
+    import jque from 'jquery';
 
     export let mounted;
     export let mapInData;
@@ -24,6 +23,9 @@
     export let minVal;
     export let maxVal;
     export let normalizeCheckbox;
+
+    let selectedValues = [];
+    let stateSelectedValues = 'ALL';
 
     let loadedData = null;
     let mounted2 = false;
@@ -131,20 +133,20 @@
         let mapValsUnordered = [];
         if(mapradioGroup=='county'){
             mapValsUnordered = mapInData[1].filter((mapValData, index) => {
-                return event.detail.value.includes(mapValData.fips)
+                return selectedValues.includes(mapValData.fips)
             })
         }
         else{
             mapValsUnordered = mapInData[2].filter((mapValData, index) => {
-                return event.detail.value.includes(mapValData.fips)
+                return selectedValues.includes(mapValData.fips)
             })
         }
 
         //reorder
         let mapVals = [];
         let urls = [];
-        for(let i=0;i<event.detail.value.length;i++){
-            let fip = event.detail.value[i]
+        for(let i=0;i<selectedValues.length;i++){
+            let fip = selectedValues[i]
             let tmp = mapValsUnordered.filter((value) => {
                 return value.fips == fip
             })
@@ -163,6 +165,7 @@
                 urls.push(d3.json(url))
                 //Promise.all([d3.json(url), d3.json('https://api.covidactnow.org/v2/counties.json?apiKey='+apikey), d3.json('https://api.covidactnow.org/v2/states.json?apiKey='+apikey)])
             }
+            
         }
         if(urls.length==0){
             draw_chart('reset')
@@ -171,6 +174,7 @@
             Promise.all(urls)
                 .then((data) => {
                     loadedData = [...data];
+                    
                     draw_chart(data)
                 })
         }
@@ -179,12 +183,13 @@
     }
     
     const stateHandler = (event) => {
-        if(event.detail.value!='ALL' & event.detail.value!='' & event.detail.value!=null){
-            let stateSelectedFips = event.detail.value;
+        if(stateSelectedValues!='ALL' & stateSelectedValues!='' & stateSelectedValues!=null){
+            let stateSelectedFips = stateSelectedValues[0];
             let newState = mapInData[2].filter((dataItem)=>{
                 return dataItem.fips == stateSelectedFips
             })
             stateSelected = newState[0]['state'];
+            console.log(stateSelected,'------ chart')
             updateNodeRef = {value:updateNodeRef['value'] + 1, reset:true, keepVals:true};
         }
     }
@@ -199,7 +204,7 @@
     const CIRLCESIZE = 1;
     const draw_chart = (data) => {
         if(data=='reset'){
-            jq("#d3linechart").empty() // clear chart
+            jque("#d3linechart").empty() // clear chart
             return null
         }
         if(!!data){
@@ -208,8 +213,9 @@
             let absmin = 9999999999999;
             let datemax = '1900-01-01';
             let datemin = '2399-01-01';
+            const dateminmax0 = minMaxResolver(startDate, endDate, datemin, datemax, true);
             for(let i=0; i<data.length; i++){
-                let objData = recursiveGetAttrTimeSeries(data[i], attrib, true, normalizeCheckbox)
+                let objData = recursiveGetAttrTimeSeries(data[i], attrib, true, normalizeCheckbox, dateminmax0[0], dateminmax0[1])
                 if(!!!objData){
                     continue
                 }
@@ -225,17 +231,14 @@
                 datemax = datemax > curmax ? datemax : curmax;
                 datemin = datemin < curmin ? datemin : curmin;
             }
-            if(!startDate & datemin!='2399-01-01'){
-                startDate = datemin;
+            const dateminmax1 = minMaxResolver(startDate, endDate, datemin, datemax, false);
+            datemin = dateminmax1[0];
+            datemax = dateminmax1[1];
+            if(!!dateminmax1[2]){
+                startDate = dateminmax1[2];
             }
-            else{
-                datemin = startDate 
-            }
-            if(!endDate & datemax!='1900-01-01'){
-                endDate = datemax;
-            }
-            else{
-                datemax = endDate 
+            if(!!dateminmax1[3]){
+                endDate = dateminmax1[3];
             }
             for(let i=0; i<dataProcessed.length;i++){
 
@@ -250,10 +253,10 @@
                     dataProcessed[j][i]['color'] = colorVal;
                 }
             }
-            console.log(dataProcessed)
+
             let origScroll = window.pageYOffset;
 
-            jq("#d3linechart").empty() // clear chart
+            jque("#d3linechart").empty() // clear chart
             let width = document.getElementById("d3linechart-col").offsetWidth
             let height = width * 0.66
 
@@ -410,7 +413,6 @@
                 }
 
                 const mousemove = (event, d) => {
-                    console.log(event)
                     let moving_avg_text = '';
                     if(event.target.tagName=='path'){
                         //https://medium.com/@louisemoxy/create-an-accurate-tooltip-for-a-d3-area-chart-bf59783f8a2d
@@ -492,22 +494,22 @@
             <h2>Chart</h2>
         </Row>
         <Row>
-            <Col xs="3">
+            <Col xs="4">
                 {#if mounted & mounted2}
                     {#if mapradioGroup=='county'}
                         <Row>
-                            <span><strong>State: </strong>(If changed, county dropdown will be reset)</span>
-                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=1 divid='chart-select-state-div' selectid='chart-state-select' setValue='ALL' on:change={stateHandler}/>    
+                            <span><strong>State: </strong></span>
+                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems={1} divid='chart-select-state-div' selectid='chart-state-select' setValue='ALL' on:chonge={stateHandler} bind:selectedValues={stateSelectedValues}/>    
                         </Row>
                         <Row>
                             <span><strong>County: </strong></span>
-                            <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:change={dataHandler} />
+                            <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValues={selectedValues}/>
                         </Row>
 
                     {:else}
                         <Row>
                             <span><strong>State: </strong></span>
-                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:change={dataHandler} />
+                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValues={selectedValues}/>
                         </Row>
                     {/if}    
                     <Row>
@@ -540,7 +542,7 @@
 
 
             </Col>
-            <Col xs="9" id='d3linechart-col'>
+            <Col xs="8" id='d3linechart-col'>
                 <div id='d3linechart'></div>
             </Col>
         </Row>

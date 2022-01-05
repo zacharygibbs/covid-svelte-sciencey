@@ -8,12 +8,14 @@
     (done) 6) changing state does not change county drop down? when many counties already selected this in the case.
     (done) 8) on popup - show population?
     --defer 9) double trigger draw event when checkbox?
-    10) Need to fix up data pull so that not as many API calls are needed during each switch?
+    --defer - stashed this because of memory issue 10) Need to fix up data pull so that not as many API calls are needed during each switch?
     11) need to pretty up the whole thing (layout/menu, about page?)
-    12 - need to not factor max/min for scale when value is outside of date range (perhaps do date filtering first?)
+    (done) 12 - need to not factor max/min for scale when value is outside of date range (perhaps do date filtering first?)
     (done) 13 - new cases - showing zero in dropdown for OK. same with map for many states; not ideal! - new deaths would require more work.
     14- pretty up 
-    15) Security around api key?
+    15) Security around api key?***
+    16) map popover fix?
+    17) new multi select - need to work on reset when switching properties - also, doesn't actually switch the chart when you switch properties currently.
     
     add on click map to add to chart (and tell user) and or on click expand state map?
     add whole US metrics
@@ -56,6 +58,7 @@
     import { onMount } from "svelte";
     import { Styles } from 'sveltestrap';
     import {Col, Container, Row } from 'sveltestrap'
+    import { Spinner } from 'sveltestrap';
     import {Dropdown, DropdownItem, DropdownMenu, DropdownToggle} from 'sveltestrap'
     import Grid from "gridjs-svelte";
     import { TabContent, TabPane } from 'sveltestrap';
@@ -189,7 +192,11 @@
 
 <body>
     <h1 id="title"> covid-svelte-sciencey</h1>
-    <div>Data Load Status: {loadStatus}</div>
+    {#if loadStatus == 'Not Loaded'}
+    Data Load Status: Data loading ... <Spinner color="primary" /> 
+    {:else}
+        <div>Data Load Status: {loadStatus}</div>
+    {/if}
     <div class='cntnr'>
         <Container class='float-start .chart-container'>
             <Row>
