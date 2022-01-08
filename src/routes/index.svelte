@@ -56,7 +56,6 @@
     import Chart from './chart.svelte'
     import {getMax, getMin, recursiveGetAttr} from './helpers.js'
 	import { getMapData } from './_data_grabber.js'
-    import * as d3 from 'd3';//'../../node_modules/.pnpm/d3@7.1.1/node_modules/d3';
     import { onMount } from "svelte";
     import { Styles } from 'sveltestrap';
     import {Col, Container, Row } from 'sveltestrap'
@@ -67,7 +66,6 @@
     import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
     let mapradioGroup;
-    let APIKEY = '';
     let mounted = false;
     let loadStatus = 'Not Loaded';
     let mapInData = [];
@@ -258,7 +256,7 @@
                         {/if}
                     </TabPane>
                     <TabPane tabId="chart" tab="Chart">
-                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {APIKEY} {minVal} {maxVal} {normalizeCheckbox}/>
+                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {minVal} {maxVal} {normalizeCheckbox}/>
                     </TabPane>
                 </TabContent>
             </Row>

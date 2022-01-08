@@ -4,6 +4,7 @@
 
 <script>
     import ChSe from './chartselect.svelte'
+	import { getChartData } from './_data_grabber.js'
     import * as d3 from 'd3';//'../../node_modules/.pnpm/d3@7.1.1/node_modules/d3';
     
     import { Styles } from 'sveltestrap';
@@ -13,7 +14,6 @@
     import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
     
-    import jque from 'jquery';
 
     export let mounted;
     export let mapInData;
@@ -67,7 +67,7 @@
                                            .sort((a,b)=>{
                                                   return b.value - a.value
                                               })
-                                          
+                console.log(dropdownVals)
                 dropdownValsState = mapInData[2].map((dataItem) => {
                     
                     let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
@@ -117,16 +117,6 @@
         return arr;
     }   
 
-    const getSingleTimeSeriesData = (state, fips) => {
-        let urlString = null;
-        if(!state){
-            urlString = 'https://api.covidactnow.org/v2/county/' + fips + '.timeseries.json?apiKey=' + APIKEY;
-        }
-        else{
-            urlString = 'https://api.covidactnow.org/v2/state/' + state + '.timeseries.json?apiKey=' + APIKEY;
-        }
-        return urlString
-    }
 
     const dataHandler = (event) => {
         loadedData = []
@@ -142,57 +132,29 @@
             })
         }
 
-        //reorder
-        let mapVals = [];
-        let urls = [];
-        for(let i=0;i<selectedValues.length;i++){
-            let fip = selectedValues[i]
-            let tmp = mapValsUnordered.filter((value) => {
-                return value.fips == fip
+        getChartData(event.detail.value, mapValsUnordered, mapradioGroup)
+            .then((data) => {
+                loadedData = [...data];
+                draw_chart(data)
             })
-            mapVals.push(tmp[0])
-            let isDataLoaded = loadedData.filter((value) => {
-                return value.fips == tmp[0].fips
-            })
-            if(true){//isDataLoaded.length==0){//if no data loaded yet
-                let url
-                if(mapradioGroup=='county'){
-                    url = getSingleTimeSeriesData(null, tmp[0].fips)
-                }
-                else{
-                    url = getSingleTimeSeriesData(tmp[0].state, null)
-                }
-                urls.push(d3.json(url))
-                //Promise.all([d3.json(url), d3.json('https://api.covidactnow.org/v2/counties.json?apiKey='+apikey), d3.json('https://api.covidactnow.org/v2/states.json?apiKey='+apikey)])
-            }
-            
-        }
-        if(urls.length==0){
-            draw_chart('reset')
-        }
-        else{
-            Promise.all(urls)
-                .then((data) => {
-                    loadedData = [...data];
-                    
-                    draw_chart(data)
-                })
-        }
 
 
     }
     
     const stateHandler = (event) => {
-        if(stateSelectedValues!='ALL' & stateSelectedValues!='' & stateSelectedValues!=null){
-            let stateSelectedFips = stateSelectedValues[0];
-            let newState = mapInData[2].filter((dataItem)=>{
-                return dataItem.fips == stateSelectedFips
-            })
-            stateSelected = newState[0]['state'];
-            console.log(stateSelected,'------ chart')
-            updateNodeRef = {value:updateNodeRef['value'] + 1, reset:true, keepVals:true};
+        if(stateSelectedValues.length > 0){
+            if(stateSelectedValues[0].value!='ALL' & stateSelectedValues[0].value!='' & stateSelectedValues[0].value!=null){
+                let stateSelectedFips = stateSelectedValues[0].value;
+                let newState = mapInData[2].filter((dataItem)=>{
+                    return dataItem.fips == stateSelectedFips
+                })
+                stateSelected = newState[0]['state'];
+                console.log(stateSelected,'------ chart')
+                updateNodeRef = {value:updateNodeRef['value'] + 1, reset:updateNodeRef['reset'] + 1, keepVals:true};
+            }
         }
     }
+
 
 
 
@@ -204,7 +166,7 @@
     const CIRLCESIZE = 1;
     const draw_chart = (data) => {
         if(data=='reset'){
-            jque("#d3linechart").empty() // clear chart
+            document.getElementById("d3linechart").innerHTML = ""; // clear chart
             return null
         }
         if(!!data){
@@ -256,7 +218,7 @@
 
             let origScroll = window.pageYOffset;
 
-            jque("#d3linechart").empty() // clear chart
+            document.getElementById("d3linechart").innerHTML = ""; // clear chart
             let width = document.getElementById("d3linechart-col").offsetWidth
             let height = width * 0.66
 
@@ -499,17 +461,17 @@
                     {#if mapradioGroup=='county'}
                         <Row>
                             <span><strong>State: </strong></span>
-                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems={1} divid='chart-select-state-div' selectid='chart-state-select' setValue='ALL' on:chonge={stateHandler} bind:selectedValues={stateSelectedValues}/>    
+                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems={1} divid='chart-select-state-div' selectid='chart-state-select' setValue='ALL' on:chonge={stateHandler} bind:selectedValuesIn={stateSelectedValues}/>    
                         </Row>
                         <Row>
                             <span><strong>County: </strong></span>
-                            <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValues={selectedValues}/>
+                            <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValuesIn={selectedValues}/>
                         </Row>
 
                     {:else}
                         <Row>
                             <span><strong>State: </strong></span>
-                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValues={selectedValues}/>
+                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValuesIn={selectedValues}/>
                         </Row>
                     {/if}    
                     <Row>
