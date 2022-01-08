@@ -7,7 +7,7 @@ const config = {
 		// hydrate the <div id="svelte"> element in src/app.html
 		target: '#svelte',
 		adapter: adapter(),
-		appDir: 'covid-dash-sciencey/_app'
+		appDir: 'covid-svelte-sciencey/_app'
 	}
 };
 export default config;

@@ -15,8 +15,10 @@
     14- pretty up 
     15) Security around api key?***
     16) map popover fix?
-    17) new multi select - need to work on reset when switching properties - also, doesn't actually switch the chart when you switch properties currently.
+    17) switching states does not reset dropdowns after initial one is selected.
     
+
+
     add on click map to add to chart (and tell user) and or on click expand state map?
     add whole US metrics
     
@@ -53,7 +55,7 @@
     import Map from './map.svelte'
     import Chart from './chart.svelte'
     import {getMax, getMin, recursiveGetAttr} from './helpers.js'
-
+	import { getMapData } from './_data_grabber.js'
     import * as d3 from 'd3';//'../../node_modules/.pnpm/d3@7.1.1/node_modules/d3';
     import { onMount } from "svelte";
     import { Styles } from 'sveltestrap';
@@ -137,52 +139,19 @@
     }
 
     $: columns = ['county, state', 'lastUpdatedDate', mapSelected];
-    
-    
-
-
-
-    let getAPIKey = () => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if(APIKEY==''){
-                    d3.json('covid_api_key.json')
-                        .then((data) => {
-                            resolve(data);
-                        })
-                    }
-                else{
-                    resolve(APIKEY)
-                }
-            }, 2000);
-        });
-    }
-
-
-    const getMapData = (apikey) => {
-        return Promise.all([d3.json('counties.json'), d3.json('https://api.covidactnow.org/v2/counties.json?apiKey='+apikey), d3.json('https://api.covidactnow.org/v2/states.json?apiKey='+apikey)])
-    }
 
     onMount(() => {
         console.log('start')
         let radiobtn = document.getElementById("mapCountyRadio");
         radiobtn.checked = true;
         mapradioGroup = 'county';
-        getAPIKey()
-            .then(
-                (data) => {
-                    APIKEY = data;
-                    getMapData(data)
-                        .then((data2) => {
-                            mapInData = data2;
-                            console.log('mount finished');
-                            mounted = true;
-                            loadStatus = 'Data Loaded For ' + mapInData[1].length + ' counties, and ' +  mapInData[2].length + " states"
-                            console.log(mapInData);
-                        })    
-                    
-                }
-            )
+        getMapData()
+            .then((data2) => {
+                mapInData = data2;
+                console.log('mount finished');
+                mounted = true;
+                loadStatus = 'Data Loaded For ' + mapInData[1].length + ' counties, and ' +  mapInData[2].length + " states"
+            })      
     })
 
 

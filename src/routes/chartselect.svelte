@@ -3,8 +3,9 @@
 </svelte:head>
 
 
-
 <script> 
+    // The problem is that we need to use selected rather than selected values i believe (selected values and selected labels are read only..)
+//realistically we just need to move this guy into the chart.svelte?
     //import selectize from 'selectize';
     //import jque from 'jquery';
     import MultiSelect from 'svelte-multiselect'
@@ -19,17 +20,15 @@
     export let divid;
     export let selectid;
     export let stateSelected;
-    export let selectedValues;
+    export let selectedValuesIn;
 
-    let selectedLabels;
-    let selectedValuesCur; //currently selected on dropdown; this may be different than what is passed from parent selectedValues
-    let selected;
+    let selected = [];
+    let selectedValues;
+    let resetBuffer;
+    
 
-    $:{
-        
-    }
 
-    let resetBuffer = updateNodeRef['reset'];
+    
     let keepVals = false;
     let selfValue;
     let valueSet=false;
@@ -39,7 +38,10 @@
 
     const dispatch = createEventDispatcher();
 
+    $: console.log('selectedValuesIn have changed', selectedValuesIn, divid, selectid)
+
     $: {
+        selectedValuesIn = selectedValues;
         dispatch('chonge', {
             divid: divid,
             selectid: selectid,
@@ -48,13 +50,14 @@
     }
 
     $: {
+        if(!!!resetBuffer){
+            resetBuffer = 0;//updateNodeRef['reset'];
+        }
         console.log(stateSelected)
         stateSelected
         updateNodeRef
         dropdownVals
-        if(resetBuffer!=updateNodeRef['reset']){
-            keepVals = true
-        }
+        keepVals = resetBuffer!=updateNodeRef['reset']
         if(valueSet & !(stateSelected=='' | stateSelected==null | stateSelected=='ALL') | resetBuffer!=updateNodeRef['reset']){
             valueSet = false;
             draw()
@@ -65,7 +68,7 @@
     const draw = () => {
         if(mounted3){
             let newDropdownOptions = [];
-            let selfValue = [...selectedValues];
+            selfValue = [...selected];
             for(let i=0;i<dropdownVals.length;i++){
                 
                 if(stateSelected=='' | stateSelected==null | stateSelected=='ALL'){
@@ -88,16 +91,24 @@
             }
 
             if(!valueSet & !keepVals){
-                selectedValues = [];//setValue;
+                selected = setValue=='' ? [] : [{label: setValue, value: setValue}];
+                //setValue;
                 valueSet = true;
-                console.log(selectedValues, selectid);
+                console.log('1setforfirst time', selectedValues, selectid);
             }
             else if(keepVals){
-                selectedValues = selfValue;
+                selected = selfValue.map((value) => {
+                    let res = newDropdownOptions.filter(value2 => value.value == value2.value)
+                    return ({value:value, label:res[0].text})
+                });
                 keepVals = false;
-
+                console.log('2-change dropdowns but keep values', selected, selectid);
             }
-            
+            else{
+                selected = setValue=='' ? [] : [{label: setValue, value: setValue}];
+                console.log('3-change dropdowns, reset values', selected, selectid);
+            }
+            console.log(newDropdownOptions);
             dropdownOptions = [...newDropdownOptions];
             
             
@@ -114,7 +125,7 @@
 
 </script>
 <div id={divid} class='selectize-input1'>
-        <MultiSelect bind:selected={selected} {selectedValuesCur} {selectedLabels} options={dropdownOptions} maxSelect={maxItems} id={selectid} class='multi-select'/>
+        <MultiSelect bind:selectedValues={selectedValues} selected={selected} options={dropdownOptions} maxSelect={maxItems} id={selectid} class='multi-select'/>
 </div>
 
 <style>
