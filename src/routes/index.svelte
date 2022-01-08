@@ -51,8 +51,7 @@
     import Map from './map.svelte'
     import Chart from './chart.svelte'
     import {getMax, getMin, recursiveGetAttr} from './helpers.js'
-
-    import * as d3 from 'd3';//'../../node_modules/.pnpm/d3@7.1.1/node_modules/d3';
+    import { getMapData } from './_data_grabber.js'
     import { onMount } from "svelte";
     import { Styles } from 'sveltestrap';
     import {Col, Container, Row } from 'sveltestrap'
@@ -62,7 +61,6 @@
     import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
     let mapradioGroup;
-    let APIKEY = '';
     let mounted = false;
     let loadStatus = 'Not Loaded';
     let mapInData = [];
@@ -139,47 +137,24 @@
 
 
 
-    let getAPIKey = () => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if(APIKEY==''){
-                    d3.json('covid_api_key.json')
-                        .then((data) => {
-                            resolve(data);
-                        })
-                    }
-                else{
-                    resolve(APIKEY)
-                }
-            }, 2000);
-        });
-    }
 
 
-    const getMapData = (apikey) => {
-        return Promise.all([d3.json('counties.json'), d3.json('https://api.covidactnow.org/v2/counties.json?apiKey='+apikey), d3.json('https://api.covidactnow.org/v2/states.json?apiKey='+apikey)])
-    }
+
+
 
     onMount(() => {
         console.log('start')
         let radiobtn = document.getElementById("mapCountyRadio");
         radiobtn.checked = true;
         mapradioGroup = 'county';
-        getAPIKey()
-            .then(
-                (data) => {
-                    APIKEY = data;
-                    getMapData(data)
-                        .then((data2) => {
-                            mapInData = data2;
-                            console.log('mount finished');
-                            mounted = true;
-                            loadStatus = 'Data Loaded For ' + mapInData[1].length + ' counties, and ' +  mapInData[2].length + " states"
-                            console.log(mapInData);
-                        })    
-                    
-                }
-            )
+
+        getMapData()
+            .then((data2) => {
+                mapInData = data2;
+                console.log('mount finished');
+                mounted = true;
+                loadStatus = 'Data Loaded For ' + mapInData[1].length + ' counties, and ' +  mapInData[2].length + " states"
+            })                        
     })
 
 
@@ -282,7 +257,7 @@
                         {/if}
                     </TabPane>
                     <TabPane tabId="chart" tab="Chart">
-                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {APIKEY} {minVal} {maxVal} {normalizeCheckbox}/>
+                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {minVal} {maxVal} {normalizeCheckbox}/>
                     </TabPane>
                 </TabContent>
             </Row>
