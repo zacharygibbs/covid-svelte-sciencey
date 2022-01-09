@@ -258,6 +258,7 @@
         
         //dataLegendAxis = dataLegendAxis.map((d) => {return d-0.001})
         const legAxis = d3.axisTop(colorLegendAxis)
+                          .ticks([4])
                         //.tickValues(dataLegendAxis)
                         //.tickFormat(d3.format('.0f'));
 
