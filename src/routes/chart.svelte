@@ -87,14 +87,13 @@
                 })
                 newSelected.push(matchVal[0]);
             }
-            let isequal = selected.reduce((prevvalue, curvalue, index) => {
-                return prevvalue & (selected[index].value == newSelected[index].value & selected[index].label == newSelected[index].label)
-            }, true)
-            if(
-                !!newSelected[0] &
-                !isequal
-            ){
-                selected = [...newSelected];
+            if(!!newSelected[0]){
+                let isequal = selected.reduce((prevvalue, curvalue, index) => {
+                    return prevvalue & (selected[index].value == newSelected[index].value & selected[index].label == newSelected[index].label)
+                }, true)
+                if(!isequal){
+                    selected = [...newSelected];
+                }
             }
         }
                                         
