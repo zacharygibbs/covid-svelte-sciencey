@@ -104,6 +104,9 @@
         getMapData()
             .then((data2) => {
                 mapInData = data2;
+                mapInData[3]['state'] = 'US';
+                mapInData[2] = [...mapInData[2], mapInData[3]];
+                console.log(mapInData[3])
                 console.log('mount finished');
                 mounted = true;
                 loadStatus = 'Data Loaded For ' + mapInData[1].length + ' counties, and ' +  mapInData[2].length + " states"

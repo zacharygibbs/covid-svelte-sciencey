@@ -3,7 +3,12 @@ import * as d3 from 'd3';
 const APIKEY = "7594cedfa81a431c9d6ff4592630b6cd";
 
 export const getMapData = () => {
-    return Promise.all([d3.json('counties.json'), d3.json('https://api.covidactnow.org/v2/counties.json?apiKey='+APIKEY), d3.json('https://api.covidactnow.org/v2/states.json?apiKey='+APIKEY)])
+    return Promise.all([
+        d3.json('counties.json'), 
+        d3.json('https://api.covidactnow.org/v2/counties.json?apiKey=' + APIKEY),
+        d3.json('https://api.covidactnow.org/v2/states.json?apiKey=' + APIKEY), 
+        d3.json('https://api.covidactnow.org/v2/country/US.json?apiKey=' + APIKEY)
+    ])
 }
 
 const getSingleTimeSeriesData = (state, fips) => {
@@ -12,7 +17,12 @@ const getSingleTimeSeriesData = (state, fips) => {
         urlString = 'https://api.covidactnow.org/v2/county/' + fips + '.timeseries.json?apiKey=' + APIKEY;
     }
     else{
-        urlString = 'https://api.covidactnow.org/v2/state/' + state + '.timeseries.json?apiKey=' + APIKEY;
+        if(state =='US'){
+            urlString = 'https://api.covidactnow.org/v2/country/US.timeseries.json?apiKey=' + APIKEY;
+        }
+        else{
+            urlString = 'https://api.covidactnow.org/v2/state/' + state + '.timeseries.json?apiKey=' + APIKEY;
+        }
     }
     return urlString
 }
@@ -23,7 +33,7 @@ export async function getChartData(fipsvals, mapValsUnordered, mapradioGroup) {
     for(let i=0;i<fipsvals.length;i++){
         let fip = fipsvals[i]
         let tmp = mapValsUnordered.filter((value) => {
-            return value.fips == fip
+            return value.fips == fip;
         })
         mapVals.push(tmp[0])
         let url

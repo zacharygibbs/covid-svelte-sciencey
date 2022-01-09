@@ -47,10 +47,6 @@
     let rawdataCheckbox = true;
     let firstTime = true;
 
-
-    
-
-
     $:{ //reactively recalc inputs if parent data changes
         console.log('attrib', attrib)
         attrib = mapSelected;
@@ -100,7 +96,6 @@
             ){
                 selected = [...newSelected];
             }
-            
         }
                                         
                                                             
@@ -118,32 +113,43 @@
                             };
                     return outObj
                 })
-                                              .sort((a,b)=>{
-                                                  return b.curVal - a.curVal
-                                              })
+                .sort((a,b)=>{
+                    console.log(b.curVal - a.curVal)
+                    return b.metricVal - a.metricVal
+                })
         if(keepSelected & selectedState.length>0){
-            if(selectedState[0].value=='ALL'){
-                let newSelected = [];
-                for(let i=0; i<selectedState.length; i++){
-                    const matchVal = dropdownValsState.filter((d) => {
-                        return selectedState[i].value == d.value
-                    })
-                    newSelected.push(matchVal[0]);
-                }
-                if(!!newSelected[0]){
-                    let isequal = selectedState.reduce((prevvalue, curvalue, index) => {
-                        return prevvalue & (selectedState[index].value == newSelected[index].value & selectedState[index].label == newSelected[index].label)
-                    }, true)
-                    if(!isequal ){
+            let chooseSelected = mapradioGroup=='county' ? selectedState : selected; // if county dropdown, then we are using selectedState variable, otherwise; we're in state mode so we should use selected variable directly
+            let newSelected = [];
+            for(let i=0; i<chooseSelected.length; i++){
+                const matchVal = dropdownValsState.filter((d) => {
+                    return chooseSelected[i].value == d.value
+                })
+                newSelected.push(matchVal[0]);
+            }
+            //debugger;
+            if(!!newSelected[0]){
+                //debugger;
+                let isequal = chooseSelected.reduce((prevvalue, curvalue, index) => {
+                    return prevvalue & (chooseSelected[index].value == newSelected[index].value & chooseSelected[index].label == newSelected[index].label)
+                }, true)
+                if(!isequal ){
+                    if(mapradioGroup=='county'){
                         selectedState = [...newSelected];
                     }
+                    else{
+                        selected = [...newSelected];
+                    }
+                    
                 }
             }
+            
         }
     }
 
     const genAllDropdowns = (keepSelected=false) => {
-        genDropdown(keepSelected);
+        if(mapradioGroup=='county'){
+            genDropdown(keepSelected);
+        }
         genDropdownState(keepSelected);
         if(mapradioGroup=='county'){
             if(keepSelected){
@@ -221,6 +227,12 @@
         else{
             getChartData(selectedValues, mapValsUnordered, mapradioGroup)
                 .then((data) => {
+                    for(let i=0; i<data.length; i++){
+                        if(!!!data[i].state){
+                            data[i].state = 'US'
+                            console.log(data[i])
+                        }
+                    }
                     loadedData = [...data];
                     draw_chart(data);
                 })
