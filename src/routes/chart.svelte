@@ -3,16 +3,16 @@
 </svelte:head>
 
 <script>
-    import ChSe from './chartselect.svelte'
 	import { getChartData } from './_data_grabber.js'
+    import {getMax, getMin, recursiveGetAttr, recursiveGetAttrTimeSeries, minMaxResolver} from './helpers.js'
     import * as d3 from 'd3';//'../../node_modules/.pnpm/d3@7.1.1/node_modules/d3';
     
     import { Styles } from 'sveltestrap';
     import { onMount } from "svelte";
     import { Col, Container, Row } from 'sveltestrap';
-    import {getMax, getMin, recursiveGetAttr, recursiveGetAttrTimeSeries, minMaxResolver} from './helpers.js'
-    import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
     
+    import { Form, FormGroup, FormText, Input, Label } from 'sveltestrap';
+    import MultiSelect from 'svelte-multiselect'
     
 
     export let mounted;
@@ -25,7 +25,10 @@
     export let normalizeCheckbox;
 
     let selectedValues = [];
-    let stateSelectedValues = 'ALL';
+    let stateSelectedValues = [];
+    let selectedState = []; //object
+    let selected = []; //object
+    let stateSelected = 'ALL';
 
     let loadedData = null;
     let mounted2 = false;
@@ -36,61 +39,132 @@
     let attrib;
     let dropdownVals = [];
     let dropdownValsState = [];
-    let updateNodeRef = {value:0, reset:0, keepVals:false};
-    let stateSelected;
+    
     let attribBuffer;
     let startDate;
     let endDate;
     let movingaverageCheckbox = true;
     let rawdataCheckbox = true;
+    let firstTime = true;
+
+
     
 
 
     $:{ //reactively recalc inputs if parent data changes
+        console.log('attrib', attrib)
         attrib = mapSelected;
+        console.log(stateSelected)
         if(mounted & mounted2 & !!mapradioGroup){
             if(mapInData != []){
-                let resetVal = attrib==attribBuffer ? updateNodeRef['reset'] : updateNodeRef['reset'] + 1;
-                updateNodeRef = {value:updateNodeRef['value'] + 1, reset:resetVal, keepVals:true};
-                attribBuffer = attrib;
-                dropdownVals = mapInData[1].map((dataItem) => {
-                    let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
-                    let curValString = curVal==null ? '' : ' - ' + curVal.toFixed(2)
-                    let outObj = {
-                                    fips: dataItem.fips,
-                                    text: dataItem['county'] + ', ' + dataItem['state'] + curValString,
-                                    state: dataItem['state'],
-                                    value: curVal
-                            };
-                    return outObj
-                })
-                                           .sort((a,b)=>{
-                                                  return b.value - a.value
-                                              })
-                console.log(dropdownVals)
-                dropdownValsState = mapInData[2].map((dataItem) => {
-                    
-                    let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
-                    let curValString = curVal==null ? '' : ' - ' + curVal.toFixed(2)
-                    let outObj = {
-                                    fips: dataItem.fips,
-                                    text: dataItem['state'] + curValString,
-                                    state: dataItem['state'],
-                                    value: curVal
-                            };
-
-                    return outObj
-                })
-                                              .sort((a,b)=>{
-                                                  return b.value - a.value
-                                              })
-                if(mapradioGroup=='county'){
-                    dropdownValsState = [{fips:'ALL', text:'ALL', state:'ALL'}, ...dropdownValsState]
+                attribBuffer = attrib;    
+                genAllDropdowns(!firstTime)
+                draw_chart(loadedData)
+                if(firstTime){
+                    firstTime = false;
                 }
             }
         }
     }
 
+    const genDropdown = (keepSelected=false) => {
+        dropdownVals = mapInData[1].map((dataItem) => {
+            let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
+            let curValString = curVal==null ? '' : ' - ' + curVal.toFixed(2)
+            let outObj = {
+                            label: dataItem['county'] + ', ' + dataItem['state'] + curValString,
+                            value: dataItem.fips,
+                            state: dataItem['state'],
+                            metricVal: curVal
+                    };
+            return outObj
+        })
+                    .sort((a,b)=>{
+                            return b.metricVal - a.metricVal
+                        })
+
+        if(keepSelected){
+            let newSelected = [];
+            for(let i=0; i<selected.length; i++){
+                const matchVal = dropdownVals.filter((d) => {
+                    return selected[i].value == d.value
+                })
+                newSelected.push(matchVal[0]);
+            }
+            let isequal = selected.reduce((prevvalue, curvalue, index) => {
+                return prevvalue & (selected[index].value == newSelected[index].value & selected[index].label == newSelected[index].label)
+            }, true)
+            if(
+                !!newSelected[0] &
+                !isequal
+            ){
+                selected = [...newSelected];
+            }
+            
+        }
+                                        
+                                                            
+    }
+
+    const genDropdownState = (keepSelected=false) => {
+        dropdownValsState = mapInData[2].map((dataItem) => {
+                    
+                    let curVal = recursiveGetAttr(dataItem, attrib, normalizeCheckbox);
+                    let curValString = curVal==null ? '' : ' - ' + curVal.toFixed(2)
+                    let outObj = {
+                                    label: dataItem['state'] + curValString,
+                                    value: dataItem.fips,
+                                    metricVal: curVal
+                            };
+                    return outObj
+                })
+                                              .sort((a,b)=>{
+                                                  return b.curVal - a.curVal
+                                              })
+        if(keepSelected & selectedState.length>0){
+            if(selectedState[0].value=='ALL'){
+                let newSelected = [];
+                for(let i=0; i<selectedState.length; i++){
+                    const matchVal = dropdownValsState.filter((d) => {
+                        return selectedState[i].value == d.value
+                    })
+                    newSelected.push(matchVal[0]);
+                }
+                if(!!newSelected[0]){
+                    let isequal = selectedState.reduce((prevvalue, curvalue, index) => {
+                        return prevvalue & (selectedState[index].value == newSelected[index].value & selectedState[index].label == newSelected[index].label)
+                    }, true)
+                    if(!isequal ){
+                        selectedState = [...newSelected];
+                    }
+                }
+            }
+        }
+    }
+
+    const genAllDropdowns = (keepSelected=false) => {
+        genDropdown(keepSelected);
+        genDropdownState(keepSelected);
+        if(mapradioGroup=='county'){
+            if(keepSelected){
+                dropdownValsState = [{value:'ALL', label:'ALL'}, ...dropdownValsState];    
+            }
+            else{
+                dropdownValsState = [{value:'ALL', label:'ALL', preselected:true}, ...dropdownValsState];
+            }     
+            dropdownVals = filterCountyByState(dropdownVals, stateSelected);
+        }
+    }
+
+    const filterCountyByState = (dropdown, state) => {
+        if(state!='ALL' & state!='' & state != null){
+            dropdown = dropdown.filter((d) => {
+                            return d.state == state
+                        })
+        }
+
+        return dropdown
+    }
 
 
 
@@ -118,8 +192,18 @@
     }   
 
 
-    const dataHandler = (event) => {
-        loadedData = []
+    $: {
+        console.log('data handler', selectedValues)
+        if(selectedValues.length > 0 ){
+            dataHandler()
+        }
+        else{
+            draw_chart('reset')
+        }
+    }
+
+    const dataHandler = () => {
+        loadedData = [];
         let mapValsUnordered = [];
         if(mapradioGroup=='county'){
             mapValsUnordered = mapInData[1].filter((mapValData, index) => {
@@ -131,28 +215,51 @@
                 return selectedValues.includes(mapValData.fips)
             })
         }
-
-        getChartData(event.detail.value, mapValsUnordered, mapradioGroup)
-            .then((data) => {
-                loadedData = [...data];
-                draw_chart(data)
-            })
-
+        if(selected.length==0){
+            draw_chart('reset')
+        }
+        else{
+            getChartData(selectedValues, mapValsUnordered, mapradioGroup)
+                .then((data) => {
+                    loadedData = [...data];
+                    draw_chart(data);
+                })
+        }
 
     }
     
-    const stateHandler = (event) => {
+    $: {
+        console.log('state handler', stateSelectedValues)
         if(stateSelectedValues.length > 0){
-            if(stateSelectedValues[0].value!='ALL' & stateSelectedValues[0].value!='' & stateSelectedValues[0].value!=null){
-                let stateSelectedFips = stateSelectedValues[0].value;
-                let newState = mapInData[2].filter((dataItem)=>{
-                    return dataItem.fips == stateSelectedFips
-                })
-                stateSelected = newState[0]['state'];
-                console.log(stateSelected,'------ chart')
-                updateNodeRef = {value:updateNodeRef['value'] + 1, reset:updateNodeRef['reset'] + 1, keepVals:true};
-            }
+            stateHandler()
         }
+        else{
+            draw_chart('reset')
+        }   
+    }
+
+    const stateHandler = () => {
+        //if(stateSelectedValues[0]!='ALL' & stateSelectedValues[0]!='' & stateSelectedValues[0]!=null){
+        console.log('state handler', stateSelectedValues[0])
+        if(mapInData != []){
+            let stateSelectedFips = stateSelectedValues[0];
+            let newState = mapInData[2].filter((dataItem)=>{
+                return dataItem.fips == stateSelectedFips
+            })
+            if(newState.length>0){
+                stateSelected = newState[0]['state'];
+            }
+            else{
+                selectedState = [{value:'ALL', label:'ALL'}];
+                stateSelected = 'ALL';
+            }
+            
+            console.log(stateSelected,'------ chart')
+            selected = [];
+            dataHandler();
+            genAllDropdowns();
+        }
+        
     }
 
 
@@ -166,7 +273,9 @@
     const CIRLCESIZE = 1;
     const draw_chart = (data) => {
         if(data=='reset'){
-            document.getElementById("d3linechart").innerHTML = ""; // clear chart
+            if(mounted2 & mounted){
+                document.getElementById("d3linechart").innerHTML = ""; // clear chart
+            }
             return null
         }
         if(!!data){
@@ -218,7 +327,9 @@
 
             let origScroll = window.pageYOffset;
 
-            document.getElementById("d3linechart").innerHTML = ""; // clear chart
+            if(mounted2 & mounted){
+                document.getElementById("d3linechart").innerHTML = ""; // clear chart
+            }
             let width = document.getElementById("d3linechart-col").offsetWidth
             let height = width * 0.66
 
@@ -402,8 +513,8 @@
                                 + attrib + ' ' + moving_avg_text + ': ' + parseFloat(d['value']).toFixed(2) + '<br/>'
                                 + 'Population: ' + d['population']
                                 )
-                        .style('left', (d3.pointer(event)[0]) + 'px')
-                        .style('top', (d3.pointer(event)[1] + 150) + 'px')
+                        .style('left', (d3.pointer(event)[0] + 100) + 'px')
+                        .style('top', (d3.pointer(event)[1] + 8000) + 'px')
                         .style('position', 'absolute')
                 }
 
@@ -432,6 +543,7 @@
 
     startDate
     $: {
+        console.log('statdate, enddate', startDate, endDate)
         startDate
         endDate
         if(!!loadedData){
@@ -439,11 +551,13 @@
         }
     }
     $: {
+        console.log('rawdataCheckbox, movingaverageCheckbox, normalizeCheckbox', rawdataCheckbox, movingaverageCheckbox, normalizeCheckbox)
         rawdataCheckbox
         movingaverageCheckbox
         normalizeCheckbox
         if(!!loadedData){
-            draw_chart(loadedData)
+            genAllDropdowns(true);
+            draw_chart(loadedData);
         }
     }
 
@@ -461,17 +575,20 @@
                     {#if mapradioGroup=='county'}
                         <Row>
                             <span><strong>State: </strong></span>
-                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems={1} divid='chart-select-state-div' selectid='chart-state-select' setValue='ALL' on:chonge={stateHandler} bind:selectedValuesIn={stateSelectedValues}/>    
+                            <!--<ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems={1} divid='chart-select-state-div' selectid='chart-state-select' setValue='ALL' on:chonge={stateHandler} bind:selectedValuesIn={stateSelectedValues}/> -->
+                            <MultiSelect bind:selectedValues={stateSelectedValues} bind:selected={selectedState} options={dropdownValsState} maxSelect={1} id='chart-state-select' class='multi-select'/> <!--on:change={stateHandler}/>-->
                         </Row>
                         <Row>
                             <span><strong>County: </strong></span>
-                            <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValuesIn={selectedValues}/>
+                            <!-- <ChSe dropdownVals={dropdownVals} updateNodeRef={updateNodeRef} stateSelected={stateSelected} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValuesIn={selectedValues}/>-->
+                            <MultiSelect bind:selectedValues={selectedValues} bind:selected={selected} options={dropdownVals} maxSelect={10} id='chart-select' class='multi-select'/><!-- on:change={dataHandler}/>-->
                         </Row>
 
                     {:else}
                         <Row>
                             <span><strong>State: </strong></span>
-                            <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValuesIn={selectedValues}/>
+                            <!-- <ChSe dropdownVals={dropdownValsState} updateNodeRef={updateNodeRef} maxItems=10 divid='chart-select-div' selectid='chart-select' setValue='' on:chonge={dataHandler} bind:selectedValuesIn={selectedValues}/> -->
+                            <MultiSelect bind:selectedValues={selectedValues} bind:selected={selected} options={dropdownValsState} maxSelect={10} id='chart-select' class='multi-select'/> <!-- on:change={dataHandler}/>-->
                         </Row>
                     {/if}    
                     <Row>

@@ -1,5 +1,5 @@
 <!--
-
+    ----- draw chart after switch attrib?
     
     2) fix map legend text & number of items and decimal points
     
@@ -47,7 +47,6 @@
 -->
 
 <svelte:head>
-    <title> covid-dash-sciencey</title>      
     <link rel='stylesheet' href='mermaid.min.css'/>
 </svelte:head>
 
@@ -57,7 +56,6 @@
     import {getMax, getMin, recursiveGetAttr} from './helpers.js'
 	import { getMapData } from './_data_grabber.js'
     import { onMount } from "svelte";
-    import { Styles } from 'sveltestrap';
     import {Col, Container, Row } from 'sveltestrap'
     import { Spinner } from 'sveltestrap';
     import {Dropdown, DropdownItem, DropdownMenu, DropdownToggle} from 'sveltestrap'
@@ -155,18 +153,32 @@
 
 </script>
 
-<Styles />
 
 <body>
-    <h1 id="title"> covid-svelte-sciencey</h1>
-    {#if loadStatus == 'Not Loaded'}
-    Data Load Status: Data loading ... <Spinner color="primary" /> 
-    {:else}
-        <div>Data Load Status: {loadStatus}</div>
-    {/if}
     <div class='cntnr'>
-        <Container class='float-start .chart-container'>
+        <Container class='float-start .chart-container' style="margin-top:10px">
             <Row>
+                <Col xs='3'>
+                    <!-- <div id="map-menus"> -->
+                    <Row>
+                        <Col>
+                            <Dropdown>
+                                <DropdownToggle caret>{mapSelected}</DropdownToggle>
+                                <DropdownMenu>
+                                    {#each mapSelected_options as mst}
+                                        <DropdownItem on:click={() => {
+                                                                        mapSelected = mst;
+                                                                        Map.mapSelected
+                                                                        }}>
+                                            {mst}
+                                        </DropdownItem>
+                                    {/each}
+                                </DropdownMenu>
+                            </Dropdown>
+                        </Col>
+                    </Row>
+                    <!--  </div> -->
+                </Col>    
                 <Col xs='2'>
                     <FormGroup>
                         <div class="radiofieldgroup">
@@ -189,39 +201,21 @@
                         </div>
                     </FormGroup>
                 </Col>
-                <Col xs = "4">
+                <Col xs="3">
                     <div id='checkbox-normalize'>
                         <FormGroup>
-                            <Input id="normalizecheckbox" type="checkbox" label="Normalize per 100,000 for applicable items" bind:checked={normalizeCheckbox} />
+                            <Input id="normalizecheckbox" type="checkbox" label="Normalize per 100,000 if applicable" bind:checked={normalizeCheckbox} />
                           </FormGroup>
                     </div>
                 </Col>
-            </Row>
-            <Row>
-                <Col xs='1'>
-                    <div id="map-menus">
-                        <Row>
-                            <Col>
-                                <Dropdown>
-                                    <DropdownToggle caret>{mapSelected}</DropdownToggle>
-                                    <DropdownMenu>
-                                        {#each mapSelected_options as mst}
-                                            <DropdownItem on:click={() => {
-                                                                            mapSelected = mst;
-                                                                            Map.mapSelected
-                                                                            }}>
-                                                {mst}
-                                            </DropdownItem>
-                                        {/each}
-                                    </DropdownMenu>
-                                </Dropdown>
-                            </Col>
-                        </Row>
-                    </div>
+                <Col xs="4">
+                    {#if loadStatus == 'Not Loaded'}
+                        Data Load Status: Data loading ... <Spinner color="primary" /> 
+                    {:else}
+                        <div>Data Load Status: {loadStatus}</div>
+                    {/if}
                 </Col>
             </Row>
-                
-            
         </Container>
     </div>
 
@@ -232,6 +226,10 @@
                     <TabPane tabId="map" tab="Map" active>
                         <h2>Map</h2>
                         <Map {mapInData} {mapSelected} {mounted} {mapradioGroup} {normalizeCheckbox} bind:minVal={minVal} bind:maxVal={maxVal}/>
+                    </TabPane>
+
+                    <TabPane tabId="chart" tab="Chart">
+                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {minVal} {maxVal} {normalizeCheckbox}/>
                     </TabPane>
                     <TabPane tabId="table" tab="Table">
                         <h2>Table</h2>
@@ -255,22 +253,10 @@
                         />
                         {/if}
                     </TabPane>
-                    <TabPane tabId="chart" tab="Chart">
-                        <Chart {mapInData} {mapSelected} {mounted} {mapradioGroup} {minVal} {maxVal} {normalizeCheckbox}/>
-                    </TabPane>
                 </TabContent>
             </Row>
         </Container>
-    </div>
-    <div>
-        <Container class='float-start .chart-container'>
-            <Row>
-                <hr/>    
-                <div class='float-start'>Source: <a href="https://covidactnow.org/">CovidActNow.org</a></div>            
-            </Row>
-        </Container>
-    </div>
-      
+    </div>      
 
 </body>
 

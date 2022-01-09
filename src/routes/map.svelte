@@ -224,15 +224,38 @@
                 .style('font-size','24px')
                 .text('Legend')
                 
+        let avgVal = d3.mean(mapValData, (d) => recursiveGetAttr(d, attrib, normalizeCheckbox))
+        let stdVal = d3.deviation(mapValData, (d) => recursiveGetAttr(d, attrib, normalizeCheckbox))
+        let medVal = d3.median(mapValData, (d) => recursiveGetAttr(d, attrib, normalizeCheckbox))
+        //let q1Val = d3.quantile(mapValData, (d) => recursiveGetAttr(d, attrib, normalizeCheckbox), 1)
+        //let q3Val = d3.quantile(mapValData, (d) => recursiveGetAttr(d, attrib, normalizeCheckbox), 3)
+        //console.log(q1Val, q3Val)
+        const numStds = 5;
         
+
         let colorsAxis = colorFun(0,minVal, maxVal, true);//d3.scaleQuantize()
                         //.domain([0, 100])
                         //.range(colorsRes.range())
         let colorLegendAxis = d3.scaleLinear()
                         .domain([minVal, maxVal])
                         .range([0, legWidth])
-
         let dataLegend = makeArr(minVal,maxVal,legWidth / legRectWidth);
+        if(!attrib.includes('riskLevels')){
+            let newminVal = d3.max([0, avgVal - numStds*stdVal]);
+            let newmaxVal = avgVal + numStds * stdVal
+            console.log(minVal, newminVal, newmaxVal, maxVal);
+            console.log(avgVal, stdVal, medVal)
+            colorsAxis = colorFun(0,newminVal, newmaxVal, true);//d3.scaleQuantize()
+                        //.domain([0, 100])
+                        //.range(colorsRes.range())
+            colorLegendAxis = d3.scaleLinear()
+                        .domain([newminVal, newmaxVal])
+                        .range([0, legWidth])
+            dataLegend = makeArr(newminVal, newmaxVal, legWidth / legRectWidth);
+        }
+
+
+        
         //dataLegendAxis = dataLegendAxis.map((d) => {return d-0.001})
         const legAxis = d3.axisTop(colorLegendAxis)
                         //.tickValues(dataLegendAxis)
@@ -270,6 +293,7 @@
         const mouseover = (event, d) => {
             curOpacity = 0.7;
             tooltip.style('opacity', curOpacity)
+            tooltip.style('z-index', 100);
         }
 
         const mousemove = (event, d) => {
@@ -303,11 +327,12 @@
         const mouseleave = (event, d) => {
             curOpacity = 0//curOpacity - 0.1;
             tooltip.style('opacity', curOpacity)
+            tooltip.style('z-index', -100);
         }
 
         d3.selectAll("path").on('mouseover', mouseover)
         .on('mousemove', mousemove)
-        //.on('mouseleave', mouseleave)
+        .on('mouseleave', mouseleave)
 
         d3.selectAll('.state').on('mouseleave', mouseleave)
 
